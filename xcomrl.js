@@ -1,7 +1,7 @@
 $(function(){
   var canvas = document.getElementById('main_canvas');
   var ctx = canvas.getContext('2d');
-  ctx.font="24px Courier";
+  ctx.font = "24px Courier";
   ctx.lineCap = 'round';
 
   var soldiers = [
@@ -61,6 +61,7 @@ $(function(){
     'car':       {icon: 'c', bg: '#afa', fg: '#0f0'},
     'wall':      {icon: 'W', bg: '#afa', fg: '#0f0'},
     'door':      {icon: 'D', bg: '#aaf', fg: '#00f'},
+    'movement_highlight': {bg: '#ccf'},
   }
 
   var clear_canvas = function() {
@@ -77,9 +78,11 @@ $(function(){
     var y=obj.y;
     var style = styles[obj.style];
     draw_cell(x, y, style.bg);
-    ctx.fillStyle = style.fg;
-    var xsz = ctx.measureText(style.icon).width;
-    ctx.fillText(style.icon, x*30+15-xsz/2, y*30+15+8);
+    if(style.icon) {
+      ctx.fillStyle = style.fg;
+      var xsz = ctx.measureText(style.icon).width;
+      ctx.fillText(style.icon, x*30+15-xsz/2, y*30+15+8);
+    }
   };
 
   var draw_all_bounds = function(i, j, style) {
@@ -173,39 +176,98 @@ $(function(){
     draw_all_bounds(mouse_x, mouse_y, '#00f');
   };
 
+  /* TODO: Doing this function properly is actually fairly nontrivial, this is very dirty approximation */
+  var compute_range = function(x0, y0, m) {
+    var range = [];
+    for(var dy=-m; dy<=m; dy++) {
+      for(var dx=-m; dx<=m; dx++) {
+        if(dx*dx+dy*dy > m*m) continue;
+        var x = x0 + dx;
+        var y = y0 + dy;
+        if(is_object_present(x, y)) continue;
+        range.push({x: x, y: y});
+      }
+    }
+    return range;
+  };
+
   var highlight_current_soldier_range = function() {
-    /* TODO: This function is actually fairly nontrivial */
+    var soldier = soldiers[current_soldier];
+    $.each(compute_range(soldier.x, soldier.y, soldier.mobility), function(){
+      draw_text_sprite({x:this.x, y:this.y, style:'movement_highlight'});
+    });
   };
 
   var display_available_actions = function() {
     /* TODO: make this soldier specific */
   };
-  var display_mouseover_object = function() {
-    $("#mouseover_object").empty();
-    $("#mouseover_object").append("<div class='coordinates'>x="+mouse_x+" y="+mouse_y+"</div>")
+  var find_object = function(x, y) {
     try {
       $.each(soldiers, function(){
-        if(this.x === mouse_x && this.y === mouse_y) {
-          $("#mouseover_object").append("<div>Rookie "+this.name+"</div>")
-          throw "done";
+        if(this.x === x && this.y === y) {
+          throw {type: 'soldier', object: this};
         };
       });
       $.each(aliens, function(){
-        if(this.x === mouse_x && this.y === mouse_y) {
-          $("#mouseover_object").append("<div>Alien "+this.style+"</div>")
-          throw "done";
+        if(this.x === x && this.y === y) {
+          throw {type: 'alien', object: this};
         };
       });
       $.each(objects, function(){
-        if(this.x === mouse_x && this.y === mouse_y) {
-          $("#mouseover_object").append("<div>Object "+this.style+"</div>")
-          throw "done";
+        if(this.x === x && this.y === y) {
+          throw {type: 'object', object: this};
         };
       });
-      $("#mousover_object").append("<div>Empty</div>")
+      throw {type: 'empty'};
     } catch(err) {
       // Found the object!
+      return err;
     };
+  };
+  var is_object_present = function(x, y) {
+    var found = find_object(x, y);
+    return (found.type !== 'empty');
+  };
+  var display_mouseover_object = function() {
+    $("#mouseover_object").empty();
+    $("#mouseover_object").append("<div class='coordinates'>x="+mouse_x+" y="+mouse_y+"</div>")
+    var found = find_object(mouse_x, mouse_y);
+    var object = found.object;
+    switch(found.type){
+    case 'soldier':
+      $("#mouseover_object").append("<div>Rookie "+object.name+"</div>")
+      break;
+    case 'alien':
+      $("#mouseover_object").append("<div>Alien "+object.style+"</div>")
+      break;
+    case 'object':
+      $("#mouseover_object").append("<div>Object "+object.style+"</div>")
+      break;
+    case 'empty':
+      $("#mousover_object").append("<div>Empty</div>")
+    }
+  };
+  var in_range = function(soldier, x, y) {
+    var range = compute_range(soldier.x, soldier.y, soldier.mobility);
+    try{
+      $.each(range, function(){
+        if(this.x === x && this.y === this.y) throw "found";
+      });
+      return false;
+    } catch(err) {
+      return true;
+    }
+  }
+  var clicked_on = function(x, y) {
+    var soldier = soldiers[current_soldier];
+    if(in_range(soldier, x, y)) {
+      soldier.actions -= 1;
+      soldier.x = x;
+      soldier.y = y;
+      if(soldier.actions == 0) {
+        next_soldier();
+      }
+    }
   };
 
   var display_info = function() {
@@ -236,8 +298,14 @@ $(function(){
     mouse_x = Math.floor((event.clientX - rect.left) / 30);
     mouse_y = Math.floor((event.clientY - rect.top) / 30);
   });
+  $(canvas).bind("click", function(event) {
+    var rect = canvas.getBoundingClientRect();
+    var x = Math.floor((event.clientX - rect.left) / 30);
+    var y = Math.floor((event.clientY - rect.top) / 30);
+    clicked_on(x, y);
+  });
   $(document).bind("keypress", function(event) {
-    console.log(event);
+    // console.log(event);
     if(event.keyCode == 101) { // 'e' for end turn
       end_turn();
     }
