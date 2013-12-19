@@ -1,0 +1,46 @@
+<html>
+<head>
+  <title>XCOM: Roguelike</title>
+  <script type="text/javascript" src="jquery-1.10.2.js"></script>
+  <script type="text/javascript" src="xcomrl.js"></script>
+  <script type="text/javascript" src="jquery.hotkeys.js"></script>
+  <style type="text/css">
+    #infobox {
+      width: 200px;
+    }
+    #soldier_info {
+      margin-bottom: 1em;
+    }
+    #mouseover_object {
+      margin-bottom: 1em;
+    };
+  </style>
+</head>
+<body>
+  <h1>XCOM: Roguelike</h1>
+  <table>
+    <tr>
+      <td>
+        <canvas id="main_canvas" width="600" height="600"
+        style="border:1px solid #000000;">
+        </canvas>
+      </td>
+      <td>
+        <div id='infobox'>
+          <b>Selected soldier:</b>
+          <div id='soldier_info'></div>
+          <b>Mouseover object:</b>
+          <div id='mouseover_object'></div>
+          <b>Actions:</b>
+          <div id='actions'>
+            <div class='action'>f Fire</div>
+            <div class='action'>o Overwatch</div>
+            <div class='action'>e End turn</div>
+            <div class='action'>n Next soldier</div>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
