@@ -1,7 +1,7 @@
 $(function(){
   var canvas = document.getElementById('main_canvas');
   var ctx = canvas.getContext('2d');
-  ctx.font = "24px Courier";
+  ctx.font = "18px Courier";
   ctx.lineCap = 'round';
 
   var soldiers = [
@@ -76,7 +76,7 @@ $(function(){
 
   var draw_cell = function(i, j, style) {
     ctx.fillStyle = style;
-    ctx.fillRect(i*30+1, j*30+1, 30-2, 30-2);
+    ctx.fillRect(i*24+1, j*24+1, 24-2, 24-2);
   };
 
   var draw_text_sprite = function(obj) {
@@ -87,27 +87,27 @@ $(function(){
     if(style.icon) {
       ctx.fillStyle = style.fg;
       var xsz = ctx.measureText(style.icon).width;
-      ctx.fillText(style.icon, x*30+15-xsz/2, y*30+15+8);
+      ctx.fillText(style.icon, x*24+12-xsz/2, y*24+12+6);
     }
   };
 
   var draw_all_bounds = function(i, j, style) {
-    var x0 = i*30;
-    var y0 = j*30;
+    var x0 = i*24;
+    var y0 = j*24;
     ctx.strokeStyle = style;
     ctx.beginPath();
     ctx.moveTo(x0, y0);
-    ctx.lineTo(x0+30, y0);
-    ctx.lineTo(x0+30, y0+30);
-    ctx.lineTo(x0, y0+30);
+    ctx.lineTo(x0+24, y0);
+    ctx.lineTo(x0+24, y0+24);
+    ctx.lineTo(x0, y0+24);
     ctx.lineTo(x0, y0);
     ctx.stroke();
   };
 
   var draw_grid = function() {
     ctx.lineWidth = 1;
-    for(var i=0; i<20; i++) {
-      for(var j=0; j<20; j++) {
+    for(var i=0; i<30; i++) {
+      for(var j=0; j<30; j++) {
         draw_all_bounds(i, j, '#ccc');
       };
     };
@@ -358,13 +358,13 @@ $(function(){
 
   $(canvas).bind("mousemove", function(event) {
     var rect = canvas.getBoundingClientRect();
-    mouse_x = Math.floor((event.clientX - rect.left) / 30);
-    mouse_y = Math.floor((event.clientY - rect.top) / 30);
+    mouse_x = Math.floor((event.clientX - rect.left) / 24);
+    mouse_y = Math.floor((event.clientY - rect.top) / 24);
   });
   $(canvas).bind("click", function(event) {
     var rect = canvas.getBoundingClientRect();
-    var x = Math.floor((event.clientX - rect.left) / 30);
-    var y = Math.floor((event.clientY - rect.top) / 30);
+    var x = Math.floor((event.clientX - rect.left) / 24);
+    var y = Math.floor((event.clientY - rect.top) / 24);
     clicked_on(x, y);
   });
   $(document).bind("keypress", function(event) {
