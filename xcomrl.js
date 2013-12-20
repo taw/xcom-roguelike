@@ -49,6 +49,7 @@ $(function(){
   var current_soldier = 0;
   var mouse_x = 0;
   var mouse_y = 0;
+  var current_mode = 'move';
 
   var styles = {
     'soldier 1': {icon: '1', bg: '#000', fg: '#fff'},
@@ -62,6 +63,11 @@ $(function(){
     'wall':      {icon: 'W', bg: '#afa', fg: '#0f0'},
     'door':      {icon: 'D', bg: '#aaf', fg: '#00f'},
     'movement_highlight': {bg: '#ccf'},
+    'dead':      {icon: 'X', bg: '#000', fg: '#800'},
+  }
+
+  var dist2 = function(x,y) {
+    return Math.sqrt(x*x+y*y);
   }
 
   var clear_canvas = function() {
@@ -140,6 +146,8 @@ $(function(){
       this.actions = 2;
       this.overwatch = false;
     });
+    current_mode = 'move';
+    current_soldier = 0;
   };
 
   /****** Actions ******/
@@ -156,10 +164,10 @@ $(function(){
     } else {
       current_soldier = i;
     }
-
+    current_mode = 'move';
   };
   var fire_mode = function() {
-    // some ways to let soldiers fire;
+    current_mode = 'fire';
   };
   var end_turn = function() {
     aliens_turn();
@@ -191,11 +199,15 @@ $(function(){
     return range;
   };
 
-  var highlight_current_soldier_range = function() {
+  var highlight_current_soldier_move_range = function() {
     var soldier = soldiers[current_soldier];
     $.each(compute_range(soldier.x, soldier.y, soldier.mobility), function(){
       draw_text_sprite({x:this.x, y:this.y, style:'movement_highlight'});
     });
+  };
+  var highlight_current_soldier_fire_range = function() {
+    var soldier = soldiers[current_soldier];
+    // TODO: highlight
   };
 
   var display_available_actions = function() {
@@ -235,19 +247,24 @@ $(function(){
     var object = found.object;
     switch(found.type){
     case 'soldier':
-      $("#mouseover_object").append("<div>Rookie "+object.name+"</div>")
+      $("#mouseover_object").append("<div>Rookie "+object.name+" ("+object.hp+"/"+object.hpmax+")</div>");
       break;
     case 'alien':
-      $("#mouseover_object").append("<div>Alien "+object.style+"</div>")
+      $("#mouseover_object").append("<div>Alien "+object.style+" ("+object.hp+"/"+object.hpmax+")</div>");
+      if(in_fire_range(soldiers[current_soldier], object)) {
+        $("#mouseover_object").append("<div>In range (hit chance "+hit_chance(soldiers[current_soldier], object)+"%)</div>");
+      } else {
+        $("#mouseover_object").append("<div>Out of range</div>");
+      }
       break;
     case 'object':
-      $("#mouseover_object").append("<div>Object "+object.style+"</div>")
+      $("#mouseover_object").append("<div>Object "+object.style+"</div>");
       break;
     case 'empty':
       $("#mousover_object").append("<div>Empty</div>")
     }
   };
-  var in_range = function(soldier, x, y) {
+  var in_move_range = function(soldier, x, y) {
     var range = compute_range(soldier.x, soldier.y, soldier.mobility);
     try{
       $.each(range, function(){
@@ -257,16 +274,59 @@ $(function(){
     } catch(err) {
       return true;
     }
+  };
+  var take_damage = function(target, damage) {
+    target.hp -= damage;
+    if(target.hp <= 0) {
+      target.hp = 0;
+      target.style = 'dead';
+    }
   }
+  var hit_chance = function(shooter, target) {
+    var chance = shooter.aim;
+    var distance = dist2(shooter.x-target.x, shooter.y-target.y);
+    // Aim penalty of up to -20 based on distance
+    if(distance >= 5) {
+      chance -= Math.round(4*(distance-5));
+    }
+    // -40 if next to an object (TODO: flanking direction)
+    if(find_object(target.x+1, target.y).type === 'object' ||
+       find_object(target.x-1, target.y).type === 'object' ||
+       find_object(target.x, target.y+1).type === 'object' ||
+       find_object(target.x, target.y-1).type === 'object') {
+      chance -= 40;
+    }
+    return chance;
+  };
+  var fire_action = function(shooter, target) {
+    var chance = hit_chance(shooter, target);
+    shooter.actions = 0;
+    if(Math.random()*100 < chance) {
+      take_damage(target, 3);
+    }
+  };
+  var in_fire_range = function(shooter, target) {
+    var gun_range = 10;
+    var distance = dist2(shooter.x-target.x, shooter.y-target.y);
+    return distance <= gun_range;
+  };
   var clicked_on = function(x, y) {
     var soldier = soldiers[current_soldier];
-    if(in_range(soldier, x, y)) {
-      soldier.actions -= 1;
-      soldier.x = x;
-      soldier.y = y;
-      if(soldier.actions == 0) {
-        next_soldier();
+    if(current_mode == 'move') {
+      if(in_move_range(soldier, x, y)) {
+        soldier.x = x;
+        soldier.y = y;
+        soldier.actions -= 1;
       }
+    }
+    if(current_mode == 'fire') {
+      if(!in_fire_range(soldier, {x:x, y:y})) return;
+      var found = find_object(x, y);
+      if(found.type !== 'alien') return;
+      fire_action(soldier, found.object);
+    }
+    if(soldier.actions == 0) {
+      next_soldier();
     }
   };
 
@@ -282,7 +342,10 @@ $(function(){
     draw_objects();
     highlight_mouseover();
     highlight_current_soldier();
-    highlight_current_soldier_range();
+    if(current_mode == 'move')
+      highlight_current_soldier_move_range();
+    if(current_mode == 'fire')
+      highlight_current_soldier_fire_range();
 
     display_info();
   };
