@@ -5,51 +5,51 @@ $(function(){
   ctx.lineCap = 'round';
 
   var soldiers = [
-    {name: 'Alice', x: 5, y: 5, style: 'soldier 1', hp: 4, hpmax: 4, aim: 65, mobility: 5, actions: 2},
-    {name: 'Bob', x: 7, y: 7, style: 'soldier 2', hp: 4, hpmax: 4, aim: 65, mobility: 5, actions: 2},
-    {name: 'Charlie', x: 5, y: 7, style: 'soldier 3', hp: 4, hpmax: 4, aim: 65, mobility: 5, actions: 2},
-    {name: 'Diana', x: 7, y: 5, style: 'soldier 4', hp: 4, hpmax: 4, aim: 65, mobility: 5, actions: 2},
+    {name: 'Alice',   x: 5, y: 5, style: 'soldier 1', hp: 4, hpmax: 4, aim: 65, mobility: 5},
+    {name: 'Bob',     x: 7, y: 7, style: 'soldier 2', hp: 4, hpmax: 4, aim: 65, mobility: 5},
+    {name: 'Charlie', x: 5, y: 7, style: 'soldier 3', hp: 4, hpmax: 4, aim: 65, mobility: 5},
+    {name: 'Diana',   x: 7, y: 5, style: 'soldier 4', hp: 4, hpmax: 4, aim: 65, mobility: 5},
   ];
   var aliens = [
-    {x: 15, y: 12, style: 'sectoid', hp: 3, hpmax: 3, mobility: 5},
-    {x: 17, y: 12, style: 'sectoid', hp: 3, hpmax: 3, mobility: 5},
-    {x: 16, y: 14, style: 'sectoid', hp: 3, hpmax: 3, mobility: 5},
-    {x: 3, y: 3, style: 'muton', hp: 6, hpmax: 6, mobility: 5},
+    {x: 15, y: 12, style: 'sectoid', hp: 3, hpmax: 3, mobility: 5, aim: 65},
+    {x: 17, y: 12, style: 'sectoid', hp: 3, hpmax: 3, mobility: 5, aim: 65},
+    {x: 16, y: 14, style: 'sectoid', hp: 3, hpmax: 3, mobility: 5, aim: 65},
+    {x:  3, y:  3, style: 'muton', hp: 6, hpmax: 6, mobility: 5, aim: 75},
   ];
   var objects = [
-    {x: 5, y: 10, style: 'car'},
-    {x: 5, y: 11, style: 'car'},
-    {x:10, y: 10, style: 'car'},
-    {x:10, y: 11, style: 'car'},
-    {x:15, y: 10, style: 'car'},
-    {x:15, y: 11, style: 'car'},
-    {x: 9, y: 3, style: 'wall'},
-    {x: 9, y: 4, style: 'wall'},
-    {x: 9, y: 5, style: 'door'},
-    {x: 9, y: 6, style: 'wall'},
-    {x: 9, y: 7, style: 'wall'},
-    {x: 16, y: 3, style: 'wall'},
-    {x: 16, y: 4, style: 'wall'},
-    {x: 16, y: 5, style: 'door'},
-    {x: 16, y: 6, style: 'wall'},
-    {x: 16, y: 7, style: 'wall'},
-    {x: 10, y: 3, style: 'wall'},
-    {x: 11, y: 3, style: 'wall'},
-    {x: 12, y: 3, style: 'wall'},
-    {x: 13, y: 3, style: 'wall'},
-    {x: 14, y: 3, style: 'wall'},
-    {x: 15, y: 3, style: 'wall'},
-    {x: 10, y: 7, style: 'wall'},
-    {x: 11, y: 7, style: 'wall'},
-    {x: 12, y: 7, style: 'wall'},
-    {x: 13, y: 7, style: 'wall'},
-    {x: 14, y: 7, style: 'wall'},
-    {x: 15, y: 7, style: 'wall'},
+    {x:  5, y: 10, style: 'car'},
+    {x:  5, y: 11, style: 'car'},
+    {x: 10, y: 10, style: 'car'},
+    {x: 10, y: 11, style: 'car'},
+    {x: 15, y: 10, style: 'car'},
+    {x: 15, y: 11, style: 'car'},
+    {x:  9, y:  3, style: 'wall'},
+    {x:  9, y:  4, style: 'wall'},
+    {x:  9, y:  5, style: 'door'},
+    {x:  9, y:  6, style: 'wall'},
+    {x:  9, y:  7, style: 'wall'},
+    {x: 16, y:  3, style: 'wall'},
+    {x: 16, y:  4, style: 'wall'},
+    {x: 16, y:  5, style: 'door'},
+    {x: 16, y:  6, style: 'wall'},
+    {x: 16, y:  7, style: 'wall'},
+    {x: 10, y:  3, style: 'wall'},
+    {x: 11, y:  3, style: 'wall'},
+    {x: 12, y:  3, style: 'wall'},
+    {x: 13, y:  3, style: 'wall'},
+    {x: 14, y:  3, style: 'wall'},
+    {x: 15, y:  3, style: 'wall'},
+    {x: 10, y:  7, style: 'wall'},
+    {x: 11, y:  7, style: 'wall'},
+    {x: 12, y:  7, style: 'wall'},
+    {x: 13, y:  7, style: 'wall'},
+    {x: 14, y:  7, style: 'wall'},
+    {x: 15, y:  7, style: 'wall'},
   ];
-  var current_soldier = 0;
-  var mouse_x = 0;
-  var mouse_y = 0;
-  var current_mode = 'move';
+  var current_soldier;
+  var mouse_x;
+  var mouse_y;
+  var current_mode;
 
   var styles = {
     'soldier 1': {icon: '1', bg: '#000', fg: '#fff'},
@@ -134,16 +134,42 @@ $(function(){
     ctx.lineWidth = 3;
     draw_all_bounds(x, y, '#f00');
   };
+  var random_move = function(alien) {
+    var range = compute_range(alien.x, alien.y, alien.mobility);
+    var move = range[Math.floor(Math.random() * range.length)];
+    alien.x = move.x;
+    alien.y = move.y;
+    alien.actions -= 1;
+  };
+  var process_alien_actions = function(alien) {
+    if(alien.hp == 0) return;
+    random_move(alien);
+    $.each(soldiers, function() {
+      if(in_fire_range(alien, this)){
+        fire_action(alien, this);
+        return;
+      }
+    });
+    if(alien.actions > 0) random_move(alien);
+  };
   var aliens_turn = function() {
     $.each(aliens, function() {
-      this.actions = 2;
+      if(this.hp > 0)
+        this.actions = 2;
+      else
+        this.actions = 0;
       this.overwatch = false;
     });
-    // TODO: make them actually move
+    $.each(aliens, function() {
+      process_alien_actions(this);
+    });
   };
   var start_new_turn = function() {
     $.each(soldiers, function(){
-      this.actions = 2;
+      if(this.hp > 0)
+        this.actions = 2;
+      else
+        this.actions = 0;
       this.overwatch = false;
     });
     current_mode = 'move';
@@ -193,6 +219,7 @@ $(function(){
         var x = x0 + dx;
         var y = y0 + dy;
         if(is_object_present(x, y)) continue;
+        if(x<0 || y<0 || x>=30 || y >= 30) continue;
         range.push({x: x, y: y});
       }
     }
@@ -242,6 +269,7 @@ $(function(){
   };
   var display_mouseover_object = function() {
     $("#mouseover_object").empty();
+    if(mouse_x === null || mouse_y === null) return;
     $("#mouseover_object").append("<div class='coordinates'>x="+mouse_x+" y="+mouse_y+"</div>")
     var found = find_object(mouse_x, mouse_y);
     var object = found.object;
@@ -350,12 +378,6 @@ $(function(){
     display_info();
   };
 
-  var main_loop = function() {
-    draw_map();
-  };
-  setInterval(main_loop, 1000.0 / 60.0);
-  // TODO: window.requestAnimationFrame(main_loop); ???
-
   $(canvas).bind("mousemove", function(event) {
     var rect = canvas.getBoundingClientRect();
     mouse_x = Math.floor((event.clientX - rect.left) / 24);
@@ -382,4 +404,11 @@ $(function(){
       overwatch();
     }
   });
+
+  var main_loop = function() {
+    draw_map();
+  };
+  start_new_turn();
+  setInterval(main_loop, 1000.0 / 60.0);
+  // TODO: window.requestAnimationFrame(main_loop); ???
 });
