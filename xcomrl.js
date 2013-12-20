@@ -4,48 +4,60 @@ $(function(){
   ctx.font = "18px Courier";
   ctx.lineCap = 'round';
 
-  var soldiers = [
-    {name: 'Alice',   x: 5, y: 5, style: 'soldier 1', hp: 4, hpmax: 4, aim: 65, mobility: 5},
-    {name: 'Bob',     x: 7, y: 7, style: 'soldier 2', hp: 4, hpmax: 4, aim: 65, mobility: 5},
-    {name: 'Charlie', x: 5, y: 7, style: 'soldier 3', hp: 4, hpmax: 4, aim: 65, mobility: 5},
-    {name: 'Diana',   x: 7, y: 5, style: 'soldier 4', hp: 4, hpmax: 4, aim: 65, mobility: 5},
-  ];
-  var aliens = [
-    {x: 15, y: 12, style: 'sectoid', hp: 3, hpmax: 3, mobility: 5, aim: 65},
-    {x: 17, y: 12, style: 'sectoid', hp: 3, hpmax: 3, mobility: 5, aim: 65},
-    {x: 16, y: 14, style: 'sectoid', hp: 3, hpmax: 3, mobility: 5, aim: 65},
-    {x:  3, y:  3, style: 'muton', hp: 6, hpmax: 6, mobility: 5, aim: 75},
-  ];
-  var objects = [
-    {x:  5, y: 10, style: 'car'},
-    {x:  5, y: 11, style: 'car'},
-    {x: 10, y: 10, style: 'car'},
-    {x: 10, y: 11, style: 'car'},
-    {x: 15, y: 10, style: 'car'},
-    {x: 15, y: 11, style: 'car'},
-    {x:  9, y:  3, style: 'wall'},
-    {x:  9, y:  4, style: 'wall'},
-    {x:  9, y:  5, style: 'door'},
-    {x:  9, y:  6, style: 'wall'},
-    {x:  9, y:  7, style: 'wall'},
-    {x: 16, y:  3, style: 'wall'},
-    {x: 16, y:  4, style: 'wall'},
-    {x: 16, y:  5, style: 'door'},
-    {x: 16, y:  6, style: 'wall'},
-    {x: 16, y:  7, style: 'wall'},
-    {x: 10, y:  3, style: 'wall'},
-    {x: 11, y:  3, style: 'wall'},
-    {x: 12, y:  3, style: 'wall'},
-    {x: 13, y:  3, style: 'wall'},
-    {x: 14, y:  3, style: 'wall'},
-    {x: 15, y:  3, style: 'wall'},
-    {x: 10, y:  7, style: 'wall'},
-    {x: 11, y:  7, style: 'wall'},
-    {x: 12, y:  7, style: 'wall'},
-    {x: 13, y:  7, style: 'wall'},
-    {x: 14, y:  7, style: 'wall'},
-    {x: 15, y:  7, style: 'wall'},
-  ];
+  var soldiers = [];
+  var aliens = [];
+  var objects = [];
+
+  var random_int = function(n) {
+    return Math.floor(Math.random() * n);
+  };
+
+  /* populate 5x5 level */
+  var populate_level_fragment = function(x0,y0) {
+    var x = x0 + random_int(4);
+    var y = y0 + random_int(4);
+    switch(random_int(10)){
+      case 0:
+      aliens.push({x: x, y: y, style: 'sectoid', hp: 3, hpmax: 3, mobility: 5, aim: 65});
+      break;
+    case 1:
+      aliens.push({x: x, y: y, style: 'muton', hp: 6, hpmax: 6, mobility: 5, aim: 75});
+      break;
+    case 2:
+    case 3:
+      objects.push({x: x, y: y, style: 'car'});
+      objects.push({x: x, y: y+1, style: 'car'});
+      break;
+    case 4:
+    case 5:
+      objects.push({x: x, y: y, style: 'car'});
+      objects.push({x: x+1, y: y, style: 'car'});
+      break;
+    case 6:
+    case 7:
+      objects.push({x: x0, y: y0, style: 'wall'});
+      objects.push({x: x0, y: y0+1, style: 'wall'});
+      objects.push({x: x0, y: y0+2, style: 'door'});
+      objects.push({x: x0, y: y0+3, style: 'wall'});
+      objects.push({x: x0, y: y0+4, style: 'wall'});
+      objects.push({x: x0+1, y: y0, style: 'wall'});
+      objects.push({x: x0+2, y: y0, style: 'door'});
+      objects.push({x: x0+3, y: y0, style: 'wall'});
+      objects.push({x: x0+4, y: y0, style: 'wall'});
+      break;
+    };
+  };
+
+  var generate_level = function() {
+    soldiers.push({name: 'Alice',   x: 1, y: 1, style: 'soldier 1', hp: 4, hpmax: 4, aim: 65, mobility: 5});
+    soldiers.push({name: 'Bob',     x: 3, y: 3, style: 'soldier 2', hp: 4, hpmax: 4, aim: 65, mobility: 5});
+    soldiers.push({name: 'Charlie', x: 1, y: 3, style: 'soldier 3', hp: 4, hpmax: 4, aim: 65, mobility: 5});
+    soldiers.push({name: 'Diana',   x: 3, y: 1, style: 'soldier 4', hp: 4, hpmax: 4, aim: 65, mobility: 5});
+    for(var i=0; i<6; i++)
+      for(var j=0; j<6; j++)
+        if(i !=0 || j != 0)
+          populate_level_fragment(i*5, j*5);
+  };
   var current_soldier;
   var mouse_x;
   var mouse_y;
@@ -136,7 +148,7 @@ $(function(){
   };
   var random_move = function(alien) {
     var range = compute_range(alien.x, alien.y, alien.mobility);
-    var move = range[Math.floor(Math.random() * range.length)];
+    var move = range[random_int(range.length)];
     alien.x = move.x;
     alien.y = move.y;
     alien.actions -= 1;
@@ -408,6 +420,7 @@ $(function(){
   var main_loop = function() {
     draw_map();
   };
+  generate_level();
   start_new_turn();
   setInterval(main_loop, 1000.0 / 60.0);
   // TODO: window.requestAnimationFrame(main_loop); ???
