@@ -12,3 +12,5 @@
 * guns classes, range, damage, crit etc.
 * grenades
 * aliens preference for cover
+* handle all soldiers dead case
+* handle all aliens dead case
