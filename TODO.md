@@ -1,16 +1,11 @@
-* display on overwatch status
 * fire trails
 * hit/miss/crit display
 
 * display detailed gun stats
 * ammo
 * per-action cooldown system (reset on new_level etc.)
-* make actions in sidebar clickable
-* show unavaialble actions with reasons (ammo, cooldown)
-* make unavailable actions actually inactive, not just not displayed
-
 * there's infinite loop during alien turn sometimes (when only dead soldiers are in range)
-
+* a few more randomly generated objects
 * low cover objects
 * sidearms
 * soldiers and aliens in one structure
@@ -19,7 +14,6 @@
 * movement by 1.0 / 1.4, not full Euclidean distance (if it works)
 * grenades
 * aliens preference for cover and for staying close to each other
-* generate new level if won
 * level ups (for at least stats)
 * full line of sight test for shooting (maybe ignoring covers)
 * make rocket work
@@ -28,6 +22,7 @@
 * class ability for snipers
 * class ability for supports
 * the game still has far too many infinite loops, and I don't know how to debug them :-(
+* do not constantly empty and recreate sidebar
 
 Overwatch system will be a big upgrade much later
 Some not completely stupid level generation as well

@@ -142,6 +142,7 @@ $ ->
     soldiers[2].y = 3
     soldiers[3].x = 3
     soldiers[3].y = 1
+    aliens = []
     for soldier in soldiers
       soldier.hp = soldier.hpmax
       soldier.cooldown = {}
@@ -199,12 +200,14 @@ $ ->
 
   display_soldier_info = (soldier) ->
     $("#soldier_info").empty()
-    $("#soldier_info").append "<div class='name'>Squaddie #{soldier.name}</div>"
-    $("#soldier_info").append "<div class='hp'>HP: #{soldier.hp}/#{soldier.hpmax}</div>"
-    $("#soldier_info").append "<div class='aim'>Aim: #{soldier.aim}</div>"
-    $("#soldier_info").append "<div class='mobility'>Mobility: #{soldier.mobility}</div>"
-    $("#soldier_info").append "<div class='xp'>XP: #{soldier.xp}</div>"
-    $("#soldier_info").append "<div class='actions'>Actions: #{soldier.actions}/2</div>"
+    $("#soldier_info").append "<div>Squaddie #{soldier.name}</div>"
+    $("#soldier_info").append "<div>HP: #{soldier.hp}/#{soldier.hpmax}</div>"
+    $("#soldier_info").append "<div>Aim: #{soldier.aim}</div>"
+    $("#soldier_info").append "<div>Mobility: #{soldier.mobility}</div>"
+    $("#soldier_info").append "<div>XP: #{soldier.xp}</div>"
+    $("#soldier_info").append "<div>Actions: #{soldier.actions}/2</div>"
+    if soldier.overwatch
+      $("#soldier_info").append "<div>On overwatch</div>"
     $("#soldier_info").append "<div><b>Equipment</b></div>"
     $("#soldier_info").append "<div>#{soldier.gun}</div>"
     $("#soldier_info").append "<div><b>Abilities</b></div>"
@@ -305,6 +308,7 @@ $ ->
     next_soldier()
 
   highlight_mouseover = ->
+    return if mouse_x is null or mouse_y is null
     ctx.lineWidth = 2
     draw_all_bounds mouse_x, mouse_y, "#00f"
 
@@ -374,7 +378,7 @@ $ ->
       if action.inactive
         $("#actions").append("<div class='inactive_action'>#{action.key} #{action.label} (#{action.inactive})</div>")
       else
-        $("#actions").append("<div class='action'>#{action.key} #{action.label}</div>")
+        $("#actions").append("<div class='action' data-key='#{action.key}'>#{action.key} #{action.label}</div>")
 
   find_object = (x, y) ->
     try
@@ -471,6 +475,11 @@ $ ->
 
   clicked_on = (x, y) ->
     soldier = current_soldier()
+    object_clicked = find_object(x, y)
+
+    if object_clicked.type == "soldier"
+      current_soldier_idx = soldiers.indexOf(object_clicked.object)
+
     if current_mode is "move"
       if in_move_range(soldier, x, y)
         soldier.x = x
@@ -478,8 +487,8 @@ $ ->
         soldier.actions -= 1
     if current_mode is "fire"
       return unless in_fire_range(soldier, x: x, y: y)
-      found = find_object(x, y)
-      return  if found.type isnt "alien"
+      object_clicked = find_object(x, y)
+      return if object_clicked.type != "alien"
       fire_action soldier, found.object
     next_soldier()  if soldier.actions is 0
 
@@ -499,7 +508,8 @@ $ ->
     if all_soldiers_dead()
       $("#game_status").append("You lost!")
     if all_aliens_dead()
-      $("#game_status").append("You won!")
+      # $("#game_status").append("You won!")
+      generate_level()
 
   draw_map = ->
     clear_canvas()
@@ -526,9 +536,19 @@ $ ->
     clicked_on x, y
     null
 
+  $(canvas).bind "mouseout", (event) ->
+    mouse_x = null
+    mouse_y = null
+    null
+
   $(document).bind "keypress", (event) ->
     return if all_soldiers_dead()
     perform_action String.fromCharCode(event.which).toLowerCase()
+    null
+
+  # TODO: Should be click not mousedown but it does not work due to excessive sidebar refreshes
+  $("#actions").on "mousedown", ".action", (event) ->
+    perform_action $(event.target).data("key")
     null
 
   main_loop = ->
