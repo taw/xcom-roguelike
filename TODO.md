@@ -1,10 +1,7 @@
-* guns classes, range, damage, crit etc.
-* classes (assault - run&gun - shotgun)
+* classes (assault - run&gun)
 * classes (heavy - fire rocket)
-* classes (sniper - sniper rifle - squad sight)
-* classes (support - assault rifle)
-* XP
-
+* classes (sniper - squad sight)
+* classes (support - ???)
 * soldiers and aliens in one structure
 * basic cover/flanking
 * fire trails
@@ -13,3 +10,6 @@
 * grenades
 * aliens preference for cover
 * generate new level if won
+* make actions in sidebar clickable
+* level ups (for at least stats)
+* full line of sight test for shooting (maybe ignoring covers)

@@ -1,4 +1,28 @@
 $ ->
+  ## Static global data
+  styles =
+    "soldier 1": {icon: "1",bg: "#000",fg: "#fff"}
+    "soldier 2": {icon: "2",bg: "#000",fg: "#fff"}
+    "soldier 3": {icon: "3",bg: "#000",fg: "#fff"}
+    "soldier 4": {icon: "4",bg: "#000",fg: "#fff"}
+    sectoid: {icon: "s",bg: "#800",fg: "#f00"}
+    muton: {icon: "m",bg: "#800",fg: "#f00"}
+    berserker: {icon: "B",bg: "#800",fg: "#f00"}
+    car: {icon: "c",bg: "#afa",fg: "#0f0"}
+    wall: {icon: "W",bg: "#afa",fg: "#0f0"}
+    door: {icon: "D",bg: "#aaf",fg: "#00f"}
+    movement_highlight: {bg: "#ccf"}
+    dead: {icon: "X",bg: "#000",fg: "#800"}
+
+  guns =
+    rifle: {damage: 3, crit: 4, crit_chance: 10, range: 10}
+    shotgun: {damage: 4, crit: 6, crit_chance: 20, range: 10, far_range: 5}
+    lmg: {damage: 4, crit: 6, crit_chance: 0, range: 10}
+    sniper_rifle: {damage: 4, crit: 6, crit_chance: 25, range: 20, min_range: 5}
+    plasma_pistol: {damage: 3, crit: 4, crit_chance: 10, range: 10}
+    light_plasma_rifle: {damage: 5, crit: 7, crit_chance: 10, range: 10}
+
+  ## Instance variables
   canvas = document.getElementById("main_canvas")
   ctx = canvas.getContext("2d")
   ctx.font = "18px Courier"
@@ -6,8 +30,18 @@ $ ->
   soldiers = []
   aliens = []
   objects = []
+  current_soldier_idx = undefined
+  mouse_x = undefined
+  mouse_y = undefined
+  current_mode = undefined
+
+  ## Core ext
   random_int = (n) ->
     Math.floor Math.random() * n
+
+  dist2 = (x, y) ->
+    Math.sqrt x * x + y * y
+
 
   # populate 5x5 level
   populate_level_fragment = (x0, y0) ->
@@ -23,6 +57,7 @@ $ ->
           hpmax: 3
           mobility: 5
           aim: 65
+          gun: 'plasma_pistol'
 
       when 1
         aliens.push
@@ -33,6 +68,7 @@ $ ->
           hpmax: 6
           mobility: 5
           aim: 75
+          gun: 'light_plasma_rifle'
 
       when 2, 3
         objects.push
@@ -101,7 +137,6 @@ $ ->
           x: x0 + 4
           y: y0
           style: "wall"
-    null
 
   generate_level = ->
     soldiers.push
@@ -109,116 +144,53 @@ $ ->
       x: 1
       y: 1
       style: "soldier 1"
-      hp: 4
-      hpmax: 4
-      aim: 65
+      hp: 7
+      hpmax: 7
+      aim: 70
       mobility: 5
+      gun: 'shotgun'
+      xp: 0
 
     soldiers.push
       name: "Bob"
       x: 3
       y: 3
       style: "soldier 2"
-      hp: 4
-      hpmax: 4
-      aim: 65
+      hp: 7
+      hpmax: 7
+      aim: 67
       mobility: 5
+      gun: 'lmg'
+      xp: 0
 
     soldiers.push
       name: "Charlie"
       x: 1
       y: 3
       style: "soldier 3"
-      hp: 4
-      hpmax: 4
-      aim: 65
+      hp: 6
+      hpmax: 6
+      aim: 75
       mobility: 5
+      gun: 'sniper_rifle'
+      xp: 0
 
     soldiers.push
       name: "Diana"
       x: 3
       y: 1
       style: "soldier 4"
-      hp: 4
-      hpmax: 4
-      aim: 65
+      hp: 7
+      hpmax: 7
+      aim: 70
       mobility: 5
+      gun: 'rifle'
+      xp: 0
 
-    i = 0
-
-    while i < 6
-      j = 0
-
-      while j < 6
-        populate_level_fragment i * 5, j * 5  if i isnt 0 or j isnt 0
-        j++
-      i++
-
-  current_soldier_idx = undefined
-  mouse_x = undefined
-  mouse_y = undefined
-  current_mode = undefined
-  styles =
-    "soldier 1":
-      icon: "1"
-      bg: "#000"
-      fg: "#fff"
-
-    "soldier 2":
-      icon: "2"
-      bg: "#000"
-      fg: "#fff"
-
-    "soldier 3":
-      icon: "3"
-      bg: "#000"
-      fg: "#fff"
-
-    "soldier 4":
-      icon: "4"
-      bg: "#000"
-      fg: "#fff"
-
-    sectoid:
-      icon: "s"
-      bg: "#800"
-      fg: "#f00"
-
-    muton:
-      icon: "m"
-      bg: "#800"
-      fg: "#f00"
-
-    berserker:
-      icon: "B"
-      bg: "#800"
-      fg: "#f00"
-
-    car:
-      icon: "c"
-      bg: "#afa"
-      fg: "#0f0"
-
-    wall:
-      icon: "W"
-      bg: "#afa"
-      fg: "#0f0"
-
-    door:
-      icon: "D"
-      bg: "#aaf"
-      fg: "#00f"
-
-    movement_highlight:
-      bg: "#ccf"
-
-    dead:
-      icon: "X"
-      bg: "#000"
-      fg: "#800"
-
-  dist2 = (x, y) ->
-    Math.sqrt x * x + y * y
+    for i in [0..5]
+      for j in [0..5]
+        if i isnt 0 or j isnt 0
+          populate_level_fragment i * 5, j * 5
 
   clear_canvas = ->
     ctx.clearRect 0, 0, canvas.width, canvas.height
@@ -268,10 +240,11 @@ $ ->
 
   display_soldier_info = (soldier) ->
     $("#soldier_info").empty()
-    $("#soldier_info").append "<div class='name'>Rookie #{soldier.name}</div>"
+    $("#soldier_info").append "<div class='name'>Squaddie #{soldier.name}</div>"
     $("#soldier_info").append "<div class='hp'>HP: #{soldier.hp}/#{soldier.hpmax}</div>"
     $("#soldier_info").append "<div class='aim'>Aim: #{soldier.aim}</div>"
     $("#soldier_info").append "<div class='mobility'>Mobility: #{soldier.mobility}</div>"
+    $("#soldier_info").append "<div class='xp'>XP: #{soldier.xp}</div>"
     $("#soldier_info").append "<div class='actions'>Actions: #{soldier.actions}/2</div>"
 
   highlight_current_soldier = ->
@@ -407,7 +380,7 @@ $ ->
     object = found.object
     switch found.type
       when "soldier"
-        $("#mouseover_object").append "<div>Rookie #{object.name} (#{object.hp}/#{object.hpmax})</div>"
+        $("#mouseover_object").append "<div>Squaddie #{object.name} (#{object.hp}/#{object.hpmax})</div>"
       when "alien"
         $("#mouseover_object").append "<div>Alien #{object.style} (#{object.hp}/#{object.hpmax})</div>"
         if in_fire_range(current_soldier(), object)
@@ -437,21 +410,38 @@ $ ->
   hit_chance = (shooter, target) ->
     chance = shooter.aim
     distance = dist2(shooter.x - target.x, shooter.y - target.y)
+    gun = guns[shooter.gun]
 
-    # Aim penalty of up to -20 based on distance
-    chance -= Math.round(4 * (distance - 5))  if distance >= 5
+    # Aim penalty of up to -20 if too far
+    if gun.far_range and distance >= gun.far_range
+      chance -= Math.round(20 * (distance - gun.far_range) / (gun.range - gun.far_range))
+
+    # Aim penalty of up to -20 if too close
+    if gun.near_range and distance <= gun.near_range
+      chance -= Math.round(20 * (gun.near_range - distance) / gun.near_range)
 
     # -40 if next to an object (TODO: flanking direction)
     chance -= 40  if find_object(target.x + 1, target.y).type is "object" or find_object(target.x - 1, target.y).type is "object" or find_object(target.x, target.y + 1).type is "object" or find_object(target.x, target.y - 1).type is "object"
     chance
 
+  register_kill = (shooter, target) ->
+    if shooter.xp isnt null
+      shooter.xp += 30
+
   fire_action = (shooter, target) ->
+    gun = guns[shooter.gun]
     chance = hit_chance(shooter, target)
     shooter.actions = 0
-    take_damage target, 3  if Math.random() * 100 < chance
+    return unless Math.random() * 100 < chance
+    if Math.random() * 100 < gun.crit_chance
+      take_damage target, gun.damage
+    else
+      take_damage target, gun.crit
+    if target.hp is 0
+      register_kill shooter, target
 
   in_fire_range = (shooter, target) ->
-    gun_range = 10
+    gun_range = guns[shooter.gun].range
     distance = dist2(shooter.x - target.x, shooter.y - target.y)
     distance <= gun_range
 
