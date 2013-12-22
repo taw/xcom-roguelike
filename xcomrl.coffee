@@ -260,10 +260,22 @@ $ ->
     alien.y = move.y
     alien.actions -= 1
 
+  live_soldiers = ->
+    (soldier for soldier in soldiers when soldier.hp > 0)
+
+  live_aliens = ->
+    (alien for alien in aliens when alien.hp > 0)
+
+  any_alien_in_range = ->
+    for alien in live_aliens()
+      if in_fire_range(current_soldier(), alien)
+        return true
+    false
+
   process_alien_actions = (alien) ->
     return if alien.hp is 0
     random_move alien
-    for soldier in soldiers
+    for soldier in live_soldiers()
       if in_fire_range(alien, soldier)
         fire_action alien, soldier
     random_move alien  if alien.actions > 0
@@ -275,11 +287,11 @@ $ ->
       else
         alien.actions = 0
       alien.overwatch = false
-    for alien in aliens
+    for alien in live_aliens()
       process_alien_actions alien
 
   start_new_turn = ->
-    for soldier in  soldiers
+    for soldier in soldiers
       if soldier.hp > 0
         soldier.actions = 2
       else
@@ -288,16 +300,22 @@ $ ->
     current_mode = "move"
     current_soldier_idx = 0
 
-  ###
-  Actions *****
-  ###
-  next_soldier = ->
+  find_next_soldier_idx = ->
     i = current_soldier_idx + 1
     until i is current_soldier_idx
       i %= soldiers.length
       break if soldiers[i].actions > 0
       i += 1
     if i is current_soldier_idx
+      null
+    else
+      i
+
+  ## Actions
+
+  next_soldier = ->
+    i = find_next_soldier_idx()
+    if i is null
       current_soldier_idx = 0
       end_turn()
     else
@@ -344,13 +362,25 @@ $ ->
         y: cell.y
         style: "movement_highlight"
 
-  # TODO: highlight
   highlight_current_soldier_fire_range = ->
-    null
+    for alien in live_aliens()
+      if in_fire_range(current_soldier(), alien)
+        ctx.lineWidth = 2
+        draw_all_bounds alien.x, alien.y, "#00a"
 
-  # TODO: make this soldier specific
   display_available_actions = ->
-    null
+    $("#actions").empty()
+    if current_mode == 'move'
+      if any_alien_in_range()
+        $("#actions").append("<div class='action'>f Fire</div>")
+      else
+        $("#actions").append("<div class='inactive_action'>f Fire (no targets)</div>")
+    if current_mode == 'fire'
+      $("#actions").append("<div class='action'>m Move</div>")
+    $("#actions").append("<div class='action'>o Overwatch</div>")
+    $("#actions").append("<div class='action'>e End turn</div>")
+    if find_next_soldier_idx() isnt null
+      $("#actions").append("<div class='action'>n Next soldier</div>")
 
   find_object = (x, y) ->
     try
