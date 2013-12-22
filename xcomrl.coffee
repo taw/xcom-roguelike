@@ -319,7 +319,6 @@ $ ->
   Actions *****
   ###
   next_soldier = ->
-    console.log(soldiers)
     i = current_soldier_idx + 1
     until i is current_soldier_idx
       i %= soldiers.length
@@ -334,6 +333,9 @@ $ ->
 
   fire_mode = ->
     current_mode = "fire"
+
+  move_mode = ->
+    current_mode = "move"
 
   end_turn = ->
     aliens_turn()
@@ -467,10 +469,21 @@ $ ->
       fire_action soldier, found.object
     next_soldier()  if soldier.actions is 0
 
+  all_soldiers_dead = ->
+    (true for soldier in soldiers when soldier.hp > 0).length == 0
+
+  all_aliens_dead = ->
+    (true for alien in aliens when alien.hp > 0).length == 0
+
   display_info = ->
     display_soldier_info current_soldier()
     display_mouseover_object()
     display_available_actions()
+    $("#game_status").empty()
+    if all_soldiers_dead()
+      $("#game_status").append("You lost!")
+    if all_aliens_dead()
+      $("#game_status").append("You won!")
 
   draw_map = ->
     clear_canvas()
@@ -489,6 +502,8 @@ $ ->
     null
 
   $(canvas).bind "click", (event) ->
+    if all_soldiers_dead()
+      return
     rect = canvas.getBoundingClientRect()
     x = Math.floor((event.clientX - rect.left) / 24)
     y = Math.floor((event.clientY - rect.top) / 24)
@@ -496,15 +511,14 @@ $ ->
     null
 
   $(document).bind "keypress", (event) ->
-    # console.log(event);
-    # 'e' for end turn
-    end_turn()  if event.keyCode is 101
-    # 'f' for fire
-    fire_mode()  if event.keyCode is 102
-    # 'n' for next
-    next_soldier()  if event.keyCode is 110
-    # 'o' for overwatch
-    overwatch()  if event.keyCode is 111
+    if all_soldiers_dead()
+      return
+    char = String.fromCharCode(event.which).toLowerCase()
+    end_turn() if char is 'e'
+    fire_mode() if char is 'f'
+    move_mode() if char is 'm'
+    next_soldier() if char is 'n'
+    overwatch() if char is 'o'
     null
 
   main_loop = ->
