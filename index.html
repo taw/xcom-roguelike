@@ -3,10 +3,14 @@
   <title>XCOM: Roguelike</title>
   <script type="text/javascript" src="jquery-1.10.2.js"></script>
   <script type="text/javascript" src="jquery.hotkeys.js"></script>
+  <script type="text/javascript" src="underscore.js"></script>
   <script type="text/javascript" src="xcomrl.js"></script>
   <style type="text/css">
     #infobox {
       width: 200px;
+    }
+    #map_info {
+      margin-bottom: 1em;
     }
     #soldier_info {
       margin-bottom: 1em;
@@ -35,6 +39,8 @@
       </td>
       <td>
         <div id='infobox'>
+          <b>Map:</b>
+          <div id='map_info'></div>
           <b>Selected soldier:</b>
           <div id='soldier_info'></div>
           <b>Mouseover object:</b>

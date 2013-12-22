@@ -1,9 +1,10 @@
-* refactor potential_actions / available_actions
-* display guns
-* display abilities
-* per-soldier abilities
+* display on overwatch status
+* fire trails
+* hit/miss/crit display
+
+* display detailed gun stats
 * ammo
-* per-soldier action system
+* per-action cooldown system (reset on new_level etc.)
 * make actions in sidebar clickable
 * show unavaialble actions with reasons (ammo, cooldown)
 * make unavailable actions actually inactive, not just not displayed
@@ -12,13 +13,8 @@
 
 * low cover objects
 * sidearms
-* classes (assault - run&gun)
-* classes (heavy - fire rocket)
-* classes (sniper - squad sight)
-* classes (support - ???)
 * soldiers and aliens in one structure
 * basic cover/flanking
-* fire trails
 * movement trails
 * movement by 1.0 / 1.4, not full Euclidean distance (if it works)
 * grenades
@@ -26,7 +22,12 @@
 * generate new level if won
 * level ups (for at least stats)
 * full line of sight test for shooting (maybe ignoring covers)
-* level number
+* make rocket work
+* make run&gun work
+* dashing
+* class ability for snipers
+* class ability for supports
+* the game still has far too many infinite loops, and I don't know how to debug them :-(
 
 Overwatch system will be a big upgrade much later
 Some not completely stupid level generation as well

@@ -12,13 +12,14 @@ $ ->
     wall: {icon: "W",bg: "#afa",fg: "#0f0"}
     door: {icon: "D",bg: "#aaf",fg: "#00f"}
     movement_highlight: {bg: "#ccf"}
+    dash_movement_highlight: {bg: "#eef"}
     dead: {icon: "X",bg: "#000",fg: "#800"}
 
   guns =
     rifle: {damage: 3, crit: 4, crit_chance: 10, range: 10}
     shotgun: {damage: 4, crit: 6, crit_chance: 20, range: 10, far_range: 5}
     lmg: {damage: 4, crit: 6, crit_chance: 0, range: 10}
-    sniper_rifle: {damage: 4, crit: 6, crit_chance: 25, range: 20, min_range: 5}
+    sniper_rifle: {damage: 4, crit: 6, crit_chance: 25, range: 20, min_range: 5, two_actions: true}
     plasma_pistol: {damage: 3, crit: 4, crit_chance: 10, range: 10}
     light_plasma_rifle: {damage: 5, crit: 7, crit_chance: 10, range: 10}
 
@@ -30,10 +31,11 @@ $ ->
   soldiers = []
   aliens = []
   objects = []
-  current_soldier_idx = undefined
-  mouse_x = undefined
-  mouse_y = undefined
-  current_mode = undefined
+  current_soldier_idx = null
+  mouse_x = null
+  mouse_y = null
+  current_mode = null
+  level_number = 0
 
   ## Core ext
   random_int = (n) ->
@@ -41,7 +43,6 @@ $ ->
 
   dist2 = (x, y) ->
     Math.sqrt x * x + y * y
-
 
   # populate 5x5 level
   populate_level_fragment = (x0, y0) ->
@@ -71,121 +72,79 @@ $ ->
           gun: 'light_plasma_rifle'
 
       when 2, 3
-        objects.push
-          x: x
-          y: y
-          style: "car"
-
-        objects.push
-          x: x
-          y: y + 1
-          style: "car"
+        objects.push x: x, y: y,     style: "car"
+        objects.push x: x, y: y + 1, style: "car"
 
       when 4, 5
-        objects.push
-          x: x
-          y: y
-          style: "car"
+        objects.push x: x, y: y,     style: "car"
 
-        objects.push
-          x: x + 1
-          y: y
-          style: "car"
+        objects.push x: x + 1, y: y, style: "car"
 
       when 6, 7
-        objects.push
-          x: x0
-          y: y0
-          style: "wall"
+        objects.push x: x0,   y: y0,   style: "wall"
+        objects.push x: x0,   y: y0+1, style: "wall"
+        objects.push x: x0,   y: y0+2, style: "door"
+        objects.push x: x0,   y: y0+3, style: "wall"
+        objects.push x: x0,   y: y0+4, style: "wall"
+        objects.push x: x0+1, y: y0,   style: "wall"
+        objects.push x: x0+2, y: y0,   style: "door"
+        objects.push x: x0+3, y: y0,   style: "wall"
+        objects.push x: x0+4, y: y0,   style: "wall"
 
-        objects.push
-          x: x0
-          y: y0 + 1
-          style: "wall"
-
-        objects.push
-          x: x0
-          y: y0 + 2
-          style: "door"
-
-        objects.push
-          x: x0
-          y: y0 + 3
-          style: "wall"
-
-        objects.push
-          x: x0
-          y: y0 + 4
-          style: "wall"
-
-        objects.push
-          x: x0 + 1
-          y: y0
-          style: "wall"
-
-        objects.push
-          x: x0 + 2
-          y: y0
-          style: "door"
-
-        objects.push
-          x: x0 + 3
-          y: y0
-          style: "wall"
-
-        objects.push
-          x: x0 + 4
-          y: y0
-          style: "wall"
-
-  generate_level = ->
+  generate_initial_squad = ->
     soldiers.push
       name: "Alice"
-      x: 1
-      y: 1
       style: "soldier 1"
-      hp: 7
       hpmax: 7
       aim: 70
       mobility: 5
       gun: 'shotgun'
+      abilities: ['run_and_gun']
       xp: 0
 
     soldiers.push
       name: "Bob"
-      x: 3
-      y: 3
       style: "soldier 2"
-      hp: 7
       hpmax: 7
       aim: 67
       mobility: 5
       gun: 'lmg'
+      abilities: ['fire_rocket']
       xp: 0
 
     soldiers.push
       name: "Charlie"
-      x: 1
-      y: 3
       style: "soldier 3"
-      hp: 6
       hpmax: 6
       aim: 75
       mobility: 5
       gun: 'sniper_rifle'
+      abilities: {}
       xp: 0
 
     soldiers.push
       name: "Diana"
-      x: 3
-      y: 1
       style: "soldier 4"
-      hp: 7
       hpmax: 7
       aim: 70
       mobility: 5
       gun: 'rifle'
+      abilities: {}
       xp: 0
+
+  generate_level = ->
+    level_number++
+    soldiers[0].x = 1
+    soldiers[0].y = 1
+    soldiers[1].x = 3
+    soldiers[1].y = 3
+    soldiers[2].x = 1
+    soldiers[2].y = 3
+    soldiers[3].x = 3
+    soldiers[3].y = 1
+    for soldier in soldiers
+      soldier.hp = soldier.hpmax
+      soldier.cooldown = {}
 
     for i in [0..5]
       for j in [0..5]
@@ -246,6 +205,11 @@ $ ->
     $("#soldier_info").append "<div class='mobility'>Mobility: #{soldier.mobility}</div>"
     $("#soldier_info").append "<div class='xp'>XP: #{soldier.xp}</div>"
     $("#soldier_info").append "<div class='actions'>Actions: #{soldier.actions}/2</div>"
+    $("#soldier_info").append "<div><b>Equipment</b></div>"
+    $("#soldier_info").append "<div>#{soldier.gun}</div>"
+    $("#soldier_info").append "<div><b>Abilities</b></div>"
+    for ability in soldier.abilities
+      $("#soldier_info").append "<div>#{ability}</div>"
 
   highlight_current_soldier = ->
     x = current_soldier().x
@@ -299,6 +263,9 @@ $ ->
       soldier.overwatch = false
     current_mode = "move"
     current_soldier_idx = 0
+    unless all_soldiers_dead()
+      while current_soldier().hp == 0
+        current_soldier_idx++
 
   find_next_soldier_idx = ->
     i = current_soldier_idx + 1
@@ -356,11 +323,11 @@ $ ->
 
   highlight_current_soldier_move_range = ->
     soldier = current_soldier()
+    if soldier.actions == 2
+      for cell in compute_range(soldier.x, soldier.y, 2*soldier.mobility)
+        draw_text_sprite x: cell.x, y: cell.y, style: "dash_movement_highlight"
     for cell in compute_range(soldier.x, soldier.y, soldier.mobility)
-      draw_text_sprite
-        x: cell.x
-        y: cell.y
-        style: "movement_highlight"
+      draw_text_sprite x: cell.x, y: cell.y, style: "movement_highlight"
 
   highlight_current_soldier_fire_range = ->
     for alien in live_aliens()
@@ -368,19 +335,46 @@ $ ->
         ctx.lineWidth = 2
         draw_all_bounds alien.x, alien.y, "#00a"
 
+  potential_actions = ->
+    soldier = current_soldier()
+    gun = guns[soldier.gun]
+
+    actions = []
+    actions.push key: 'e', label: 'End turn'
+    if current_mode == 'fire'
+      actions.push key: 'm', label: 'Move'
+    if !gun.two_actions or soldier.actions == 2
+      actions.push key: 'o', label: 'Overwatch'
+      if current_mode == 'move'
+        if any_alien_in_range()
+          actions.push key: 'f', label: 'Fire'
+        else
+          actions.push key: 'f', label: 'Fire', inactive: 'no targets in range'
+    if find_next_soldier_idx() isnt null
+      actions.push key: 'n', label: 'Next soldier'
+    _.sortBy actions, (action) ->
+      action.key
+
+  action_is_valid = (key) ->
+    for action in potential_actions()
+      return true if action.key == key and not action.inactive
+    false
+
+  perform_action = (key) ->
+    return unless action_is_valid(key)
+    end_turn() if key is 'e'
+    fire_mode() if key is 'f'
+    move_mode() if key is 'm'
+    next_soldier() if key is 'n'
+    overwatch() if key is 'o'
+
   display_available_actions = ->
     $("#actions").empty()
-    if current_mode == 'move'
-      if any_alien_in_range()
-        $("#actions").append("<div class='action'>f Fire</div>")
+    for action in potential_actions()
+      if action.inactive
+        $("#actions").append("<div class='inactive_action'>#{action.key} #{action.label} (#{action.inactive})</div>")
       else
-        $("#actions").append("<div class='inactive_action'>f Fire (no targets)</div>")
-    if current_mode == 'fire'
-      $("#actions").append("<div class='action'>m Move</div>")
-    $("#actions").append("<div class='action'>o Overwatch</div>")
-    $("#actions").append("<div class='action'>e End turn</div>")
-    if find_next_soldier_idx() isnt null
-      $("#actions").append("<div class='action'>n Next soldier</div>")
+        $("#actions").append("<div class='action'>#{action.key} #{action.label}</div>")
 
   find_object = (x, y) ->
     try
@@ -496,6 +490,8 @@ $ ->
     (true for alien in aliens when alien.hp > 0).length == 0
 
   display_info = ->
+    $("#map_info").empty()
+    $("#map_info").append("Level #{level_number}")
     display_soldier_info current_soldier()
     display_mouseover_object()
     display_available_actions()
@@ -510,9 +506,10 @@ $ ->
     draw_grid()
     draw_objects()
     highlight_mouseover()
-    highlight_current_soldier()
-    highlight_current_soldier_move_range() if current_mode is "move"
-    highlight_current_soldier_fire_range() if current_mode is "fire"
+    if current_soldier()
+      highlight_current_soldier()
+      highlight_current_soldier_move_range() if current_mode is "move"
+      highlight_current_soldier_fire_range() if current_mode is "fire"
     display_info()
 
   $(canvas).bind "mousemove", (event) ->
@@ -522,8 +519,7 @@ $ ->
     null
 
   $(canvas).bind "click", (event) ->
-    if all_soldiers_dead()
-      return
+    return if all_soldiers_dead()
     rect = canvas.getBoundingClientRect()
     x = Math.floor((event.clientX - rect.left) / 24)
     y = Math.floor((event.clientY - rect.top) / 24)
@@ -531,20 +527,15 @@ $ ->
     null
 
   $(document).bind "keypress", (event) ->
-    if all_soldiers_dead()
-      return
-    char = String.fromCharCode(event.which).toLowerCase()
-    end_turn() if char is 'e'
-    fire_mode() if char is 'f'
-    move_mode() if char is 'm'
-    next_soldier() if char is 'n'
-    overwatch() if char is 'o'
+    return if all_soldiers_dead()
+    perform_action String.fromCharCode(event.which).toLowerCase()
     null
 
   main_loop = ->
     draw_map()
     null
 
+  generate_initial_squad()
   generate_level()
   start_new_turn()
   setInterval main_loop, 1000.0 / 60.0
