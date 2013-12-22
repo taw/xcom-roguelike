@@ -154,7 +154,7 @@ $ ->
         j++
       i++
 
-  current_soldier = undefined
+  current_soldier_idx = undefined
   mouse_x = undefined
   mouse_y = undefined
   current_mode = undefined
@@ -251,41 +251,32 @@ $ ->
 
   draw_grid = ->
     ctx.lineWidth = 1
-    i = 0
-
-    while i < 30
-      j = 0
-
-      while j < 30
+    for i in [0..29]
+      for j in [0..29]
         draw_all_bounds i, j, "#ccc"
-        j++
-      i++
 
   draw_objects = ->
-    $.each soldiers, ->
-      draw_text_sprite this
-      null
+    for soldier in soldiers
+      draw_text_sprite soldier
+    for alien in aliens
+      draw_text_sprite alien
+    for object in objects
+      draw_text_sprite object
 
-    $.each aliens, ->
-      draw_text_sprite this
-      null
-
-    $.each objects, ->
-      draw_text_sprite this
-      null
-
+  current_soldier = ->
+    soldiers[current_soldier_idx]
 
   display_soldier_info = (soldier) ->
     $("#soldier_info").empty()
-    $("#soldier_info").append "<div class='name'>Rookie " + soldier.name + "</div>"
-    $("#soldier_info").append "<div class='hp'>HP: " + soldier.hp + "/" + soldier.hpmax + "</div>"
-    $("#soldier_info").append "<div class='aim'>Aim: " + soldier.aim + "</div>"
-    $("#soldier_info").append "<div class='mobility'>Mobility: " + soldier.mobility + "</div>"
-    $("#soldier_info").append "<div class='actions'>Actions: " + soldier.actions + "/2</div>"
+    $("#soldier_info").append "<div class='name'>Rookie #{soldier.name}</div>"
+    $("#soldier_info").append "<div class='hp'>HP: #{soldier.hp}/#{soldier.hpmax}</div>"
+    $("#soldier_info").append "<div class='aim'>Aim: #{soldier.aim}</div>"
+    $("#soldier_info").append "<div class='mobility'>Mobility: #{soldier.mobility}</div>"
+    $("#soldier_info").append "<div class='actions'>Actions: #{soldier.actions}/2</div>"
 
   highlight_current_soldier = ->
-    x = soldiers[current_soldier].x
-    y = soldiers[current_soldier].y
+    x = current_soldier().x
+    y = current_soldier().y
     ctx.lineWidth = 3
     draw_all_bounds x, y, "#f00"
 
@@ -297,59 +288,48 @@ $ ->
     alien.actions -= 1
 
   process_alien_actions = (alien) ->
-    return  if alien.hp is 0
+    return if alien.hp is 0
     random_move alien
-    $.each soldiers, ->
-      if in_fire_range(alien, this)
-        fire_action alien, this
-        return
-      null
-
+    for soldier in soldiers
+      if in_fire_range(alien, soldier)
+        fire_action alien, soldier
     random_move alien  if alien.actions > 0
 
   aliens_turn = ->
-    $.each aliens, ->
-      if @hp > 0
-        @actions = 2
+    for alien in aliens
+      if alien.hp > 0
+        alien.actions = 2
       else
-        @actions = 0
-      @overwatch = false
-      null
-
-    $.each aliens, ->
-      process_alien_actions this
-      null
-
+        alien.actions = 0
+      alien.overwatch = false
+    for alien in aliens
+      process_alien_actions alien
 
   start_new_turn = ->
-    $.each soldiers, ->
-      console.log(this)
-      if @hp > 0
-        @actions = 2
+    for soldier in  soldiers
+      if soldier.hp > 0
+        soldier.actions = 2
       else
-        @actions = 0
-      @overwatch = false
-      null
-
+        soldier.actions = 0
+      soldier.overwatch = false
     current_mode = "move"
-    current_soldier = 0
-
+    current_soldier_idx = 0
 
   ###
   Actions *****
   ###
   next_soldier = ->
     console.log(soldiers)
-    i = current_soldier + 1
-    until i is current_soldier
+    i = current_soldier_idx + 1
+    until i is current_soldier_idx
       i %= soldiers.length
       break if soldiers[i].actions > 0
       i += 1
-    if i is current_soldier
-      current_soldier = 0
+    if i is current_soldier_idx
+      current_soldier_idx = 0
       end_turn()
     else
-      current_soldier = i
+      current_soldier_idx = i
     current_mode = "move"
 
   fire_mode = ->
@@ -360,77 +340,56 @@ $ ->
     start_new_turn()
 
   overwatch = ->
-    soldiers[current_soldier].overwatch = true
-    soldiers[current_soldier].actions = 0
+    current_soldier().overwatch = true
+    current_soldier().actions = 0
     next_soldier()
 
   highlight_mouseover = ->
     ctx.lineWidth = 2
     draw_all_bounds mouse_x, mouse_y, "#00f"
 
-
   # TODO: Doing this function properly is actually fairly nontrivial, this is very dirty approximation
   compute_range = (x0, y0, m) ->
     range = []
-    dy = -m
-
     for dy in [-m..m]
-
       for dx in [-m..m]
-        continue  if dx * dx + dy * dy > m * m
+        continue if dx * dx + dy * dy > m * m
         x = x0 + dx
         y = y0 + dy
-        continue  if is_object_present(x, y)
-        continue  if x < 0 or y < 0 or x >= 30 or y >= 30
-        range.push
-          x: x
-          y: y
-
+        continue if x < 0 or y < 0 or x >= 30 or y >= 30
+        continue if is_object_present(x, y)
+        range.push x: x, y: y
     range
 
   highlight_current_soldier_move_range = ->
-    soldier = soldiers[current_soldier]
-    $.each compute_range(soldier.x, soldier.y, soldier.mobility), ->
+    soldier = current_soldier()
+    for cell in compute_range(soldier.x, soldier.y, soldier.mobility)
       draw_text_sprite
-        x: @x
-        y: @y
+        x: cell.x
+        y: cell.y
         style: "movement_highlight"
-      null
 
   # TODO: highlight
   highlight_current_soldier_fire_range = ->
-    soldier = soldiers[current_soldier]
+    null
 
+  # TODO: make this soldier specific
   display_available_actions = ->
     null
-  # TODO: make this soldier specific
 
   find_object = (x, y) ->
     try
-      $.each soldiers, ->
-        if @x is x and @y is y
-          throw
-            type: "soldier"
-            object: this
-        null
-
-      $.each aliens, ->
-        if @x is x and @y is y
-          throw
-            type: "alien"
-            object: this
-        null
-
-      $.each objects, ->
-        if @x is x and @y is y
-          throw
-            type: "object"
-            object: this
-        null
-
+      for soldier in soldiers
+        if soldier.x is x and soldier.y is y
+          throw type: "soldier", object: soldier
+      for alien in aliens
+        if alien.x is x and alien.y is y
+          throw type: "alien", object: alien
+      for object in objects
+        if object.x is x and object.y is y
+          throw type: "object", object: object
       throw type: "empty"
     catch err
-
       # Found the object!
       return err
 
@@ -440,30 +399,29 @@ $ ->
 
   display_mouseover_object = ->
     $("#mouseover_object").empty()
-    return  if mouse_x is null or mouse_y is null
+    return if mouse_x is null or mouse_y is null
     $("#mouseover_object").append "<div class='coordinates'>x=" + mouse_x + " y=" + mouse_y + "</div>"
     found = find_object(mouse_x, mouse_y)
     object = found.object
     switch found.type
       when "soldier"
-        $("#mouseover_object").append "<div>Rookie " + object.name + " (" + object.hp + "/" + object.hpmax + ")</div>"
+        $("#mouseover_object").append "<div>Rookie #{object.name} (#{object.hp}/#{object.hpmax})</div>"
       when "alien"
-        $("#mouseover_object").append "<div>Alien " + object.style + " (" + object.hp + "/" + object.hpmax + ")</div>"
-        if in_fire_range(soldiers[current_soldier], object)
-          $("#mouseover_object").append "<div>In range (hit chance " + hit_chance(soldiers[current_soldier], object) + "%)</div>"
+        $("#mouseover_object").append "<div>Alien #{object.style} (#{object.hp}/#{object.hpmax})</div>"
+        if in_fire_range(current_soldier(), object)
+          $("#mouseover_object").append "<div>In range (hit chance #{hit_chance(current_soldier(), object)}%)</div>"
         else
           $("#mouseover_object").append "<div>Out of range</div>"
       when "object"
-        $("#mouseover_object").append "<div>object " + object.style + "</div>"
+        $("#mouseover_object").append "<div>object #{object.style}</div>"
       when "empty"
         $("#mousover_object").append "<div>Empty</div>"
 
   in_move_range = (soldier, x, y) ->
     range = compute_range(soldier.x, soldier.y, soldier.mobility)
     try
-      $.each range, ->
-        throw "found"  if @x is x and @y is @y
-        null
+      for cell in range
+        throw "found" if cell.x is x and cell.y is y
       return false
     catch err
       return true
@@ -496,24 +454,21 @@ $ ->
     distance <= gun_range
 
   clicked_on = (x, y) ->
-    soldier = soldiers[current_soldier]
+    soldier = current_soldier()
     if current_mode is "move"
       if in_move_range(soldier, x, y)
         soldier.x = x
         soldier.y = y
         soldier.actions -= 1
     if current_mode is "fire"
-      return  unless in_fire_range(soldier,
-        x: x
-        y: y
-      )
+      return unless in_fire_range(soldier, x: x, y: y)
       found = find_object(x, y)
       return  if found.type isnt "alien"
       fire_action soldier, found.object
     next_soldier()  if soldier.actions is 0
 
   display_info = ->
-    display_soldier_info soldiers[current_soldier]
+    display_soldier_info current_soldier()
     display_mouseover_object()
     display_available_actions()
 
