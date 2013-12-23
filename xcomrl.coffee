@@ -280,6 +280,7 @@ $ ->
         current_soldier_idx++
 
   find_next_soldier_idx = ->
+    return null if all_soldiers_dead() # hack, not sure if necessary
     i = current_soldier_idx + 1
     until i is current_soldier_idx
       i %= soldiers.length
@@ -354,15 +355,16 @@ $ ->
 
     actions = []
     actions.push key: 'e', label: 'End turn'
-    if current_mode == 'fire'
-      actions.push key: 'm', label: 'Move'
-    if !gun.two_actions or soldier.actions == 2
-      actions.push key: 'o', label: 'Overwatch'
-      if current_mode == 'move'
-        if any_alien_in_range()
-          actions.push key: 'f', label: 'Fire'
-        else
-          actions.push key: 'f', label: 'Fire', inactive: 'no targets in range'
+    if soldier.hp > 0
+      if current_mode == 'fire'
+        actions.push key: 'm', label: 'Move'
+      if !gun.two_actions or soldier.actions == 2
+        actions.push key: 'o', label: 'Overwatch'
+        if current_mode == 'move'
+          if any_alien_in_range()
+            actions.push key: 'f', label: 'Fire'
+          else
+            actions.push key: 'f', label: 'Fire', inactive: 'no targets in range'
     if find_next_soldier_idx() isnt null
       actions.push key: 'n', label: 'Next soldier'
     _.sortBy actions, (action) ->
