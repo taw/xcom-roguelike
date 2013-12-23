@@ -45,33 +45,38 @@ $ ->
   dist2 = (x, y) ->
     Math.sqrt x * x + y * y
 
+  ## Create aliens
+  create_sectoid = (x,y) ->
+    x: x
+    y: y
+    style: "sectoid"
+    hp: 3
+    hpmax: 3
+    mobility: 5
+    aim: 65
+    gun: 'plasma_pistol'
+
+  create_muton = (x,y) ->
+    x: x
+    y: y
+    style: "muton"
+    hp: 6
+    hpmax: 6
+    mobility: 5
+    aim: 75
+    gun: 'light_plasma_rifle'
+
+  ## Everything else
+
   # populate 5x5 level
   populate_level_fragment = (x0, y0) ->
     x = x0 + random_int(4)
     y = y0 + random_int(4)
     switch random_int(10)
       when 0
-        aliens.push
-          x: x
-          y: y
-          style: "sectoid"
-          hp: 3
-          hpmax: 3
-          mobility: 5
-          aim: 65
-          gun: 'plasma_pistol'
-
+        aliens.push create_sectoid(x, y)
       when 1
-        aliens.push
-          x: x
-          y: y
-          style: "muton"
-          hp: 6
-          hpmax: 6
-          mobility: 5
-          aim: 75
-          gun: 'light_plasma_rifle'
-
+        aliens.push create_muton(x, y)
       when 2, 3
         objects.push x: x, y: y,     style: "car"
         objects.push x: x, y: y + 1, style: "car"
@@ -146,6 +151,7 @@ $ ->
     for soldier in soldiers
       soldier.hp = soldier.hpmax
       soldier.cooldown = {}
+      soldier.actions = 2
 
     for i in [0..5]
       for j in [0..5]

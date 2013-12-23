@@ -1,4 +1,3 @@
-* new_alien(type, x, y)
 * ammo
 * reload action
 
@@ -14,7 +13,6 @@
 * inter-level summary screen
 * a few more alien types (thin men, floaters, heavy floaters, muton elites etc.) - for now possibly without any special stuff
 
-* there's infinite loop during alien turn sometimes (when only dead soldiers are in range)
 * low cover objects
 * sidearms
 * soldiers and aliens in one structure
