@@ -1,16 +1,18 @@
-* cleanup decorations table
+* make fire trail for miss look like one
+
+* inter-level summary screen
+* different alien types by level
+* aliens should shoot most vulnerable soldier
+* display detailed gun stats (as mouseover popup?)
+* displapy ability description (as mouseover popup?)
 
 * per-action cooldown system (reset on new_level etc.)
 * a few more randomly generated objects
 * make run&gun work
 
-* display detailed gun stats (as mouseover popup?)
-* displapy ability description (as mouseover popup?)
-* inter-level summary screen
 * a few more alien types (floaters, heavy floaters) - for now possibly without any special stuff
 * melee aliens (berserkers) - for now without any special stuff
 
-* aliens should shoot most vulnerable soldier
 * aliens should take 1 second or so per action (once movement trail are done)
 
 * low cover objects
@@ -29,12 +31,14 @@
 * class ability for supports
 * maybe free aim (once there are destructible covers)
 
+* share more code between soldiers and aliens
+
 * getters/setters to cleanup the code https://gist.github.com/reversepanda/5814547
 * A* http://www.briangrinstead.com/blog/astar-search-algorithm-in-javascript-updated
 * perk tree ideas from http://www.nexusmods.com/xcom/mods/88/ ?
 * Overwatch system will be a big upgrade much later
 * Some not completely stupid level generation as well
-* Rewriting the code with attribute getters will probably clean up a lot of things
+* Rewriting the code with classes, attribute getters etc. will probably clean up a lot of things
 
 Ability tree idea - training roulette pool:
 * resilience

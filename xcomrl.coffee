@@ -371,7 +371,7 @@ $ ->
       x: soldier.x
       y: soldier.y
       msg: 'Reload'
-      timeout: current_time() + 4000
+      timeout: current_time() + 3000
     next_soldier()
 
   overwatch = ->
@@ -383,7 +383,7 @@ $ ->
       x: soldier.x
       y: soldier.y
       msg: 'Overwatch'
-      timeout: current_time() + 4000
+      timeout: current_time() + 3000
     next_soldier()
 
   highlight_mouseover = ->
@@ -542,13 +542,13 @@ $ ->
       y0: shooter.y
       x1: target.x
       y1: target.y
-      timeout: current_time() + 2000
+      timeout: current_time() + 1500
     decorations.push
       type: 'text'
       x: target.x
       y: target.y
       msg: msg
-      timeout: current_time() + 4000
+      timeout: current_time() + 3000
 
   fire_action = (shooter, target) ->
     gun = guns[shooter.gun]
@@ -611,10 +611,9 @@ $ ->
 
   display_decorations = ->
     time = current_time()
+    decorations = _.filter decorations, (decoration) ->
+      time <= decoration.timeout
     for decoration in decorations
-      if time > decoration.timeout
-        continue
-      console.log decoration
       switch decoration.type
         when 'fire trail'
           ctx.strokeStyle = '#f00'
