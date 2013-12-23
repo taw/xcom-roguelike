@@ -6,8 +6,9 @@ $ ->
     "soldier 3": {icon: "3",bg: "#000",fg: "#fff"}
     "soldier 4": {icon: "4",bg: "#000",fg: "#fff"}
     sectoid: {icon: "s",bg: "#800",fg: "#f00"}
+    thin_man: {icon: "t",bg: "#800",fg: "#f00"}
     muton: {icon: "m",bg: "#800",fg: "#f00"}
-    berserker: {icon: "B",bg: "#800",fg: "#f00"}
+    muton_elite: {icon: "e",bg: "#800",fg: "#f00"}
     car: {icon: "c",bg: "#afa",fg: "#0f0"}
     wall: {icon: "W",bg: "#afa",fg: "#0f0"}
     door: {icon: "D",bg: "#aaf",fg: "#00f"}
@@ -16,13 +17,15 @@ $ ->
     dead: {icon: "X",bg: "#000",fg: "#800"}
 
   guns =
-    rifle: {damage: 3, crit: 4, crit_chance: 10, range: 10}
-    shotgun: {damage: 4, crit: 6, crit_chance: 20, range: 10, far_range: 5}
-    lmg: {damage: 4, crit: 6, crit_chance: 0, range: 10}
-    sniper_rifle: {damage: 4, crit: 6, crit_chance: 25, range: 20, min_range: 5, two_actions: true}
-    plasma_pistol: {damage: 3, crit: 4, crit_chance: 10, range: 10}
     pistol: {damage: 1, crit: 1, crit_chance: 1, range: 10}
-    light_plasma_rifle: {damage: 5, crit: 7, crit_chance: 10, range: 10}
+    plasma_pistol: {damage: 3, crit: 4, crit_chance: 10, range: 10}
+    shotgun: {damage: 4, crit: 6, crit_chance: 20, range: 10, far_range: 5, ammomax: 4}
+    rifle: {damage: 3, crit: 4, crit_chance: 10, range: 10, ammomax: 4}
+    light_plasma_rifle: {damage: 5, crit: 7, crit_chance: 10, range: 10, ammomax: 4}
+    plasma_rifle: {damage: 7, crit: 10, crit_chance: 10, range: 10, ammomax: 4}
+    sniper_rifle: {damage: 4, crit: 6, crit_chance: 25, range: 20, min_range: 5, two_actions: true, ammomax: 4}
+    lmg: {damage: 4, crit: 6, crit_chance: 0, range: 10, ammomax: 3}
+    heavy_plasma: {damage: 9, crit: 13, crit_chance: 0, range: 10, ammomax: 3}
 
   ## Instance variables
   canvas = document.getElementById("main_canvas")
@@ -46,25 +49,50 @@ $ ->
     Math.sqrt x * x + y * y
 
   ## Create aliens
+  create_unit = (x,y,fn) ->
+    unit = fn()
+    unit.x = x
+    unit.y = y
+    unit.hp = unit.hpmax
+    if unit.gun
+      unit.ammo = guns[unit.gun].ammomax
+    unit.defense ||= 0
+    unit
+
   create_sectoid = (x,y) ->
-    x: x
-    y: y
-    style: "sectoid"
-    hp: 3
-    hpmax: 3
-    mobility: 5
-    aim: 65
-    gun: 'plasma_pistol'
+    create_unit x, y, ->
+      style: "sectoid"
+      hpmax: 3
+      mobility: 5
+      aim: 65
+      gun: 'plasma_pistol'
+
+  create_thin_man = (x,y) ->
+    create_unit x, y, ->
+      style: "thin_man"
+      hpmax: 3
+      mobility: 7
+      aim: 65
+      gun: 'light_plasma_rifle'
 
   create_muton = (x,y) ->
-    x: x
-    y: y
-    style: "muton"
-    hp: 6
-    hpmax: 6
-    mobility: 5
-    aim: 75
-    gun: 'light_plasma_rifle'
+    create_unit x, y, ->
+      style: "muton"
+      hpmax: 6
+      mobility: 5
+      aim: 70
+      gun: 'plasma_rifle'
+      abilities: ['alien_grenade']
+
+  create_muton_elite = (x,y) ->
+    create_unit x, y, ->
+      style: "muton_elite"
+      hpmax: 14
+      mobility: 5
+      aim: 80
+      defense: 20
+      gun: 'heavy_plasma'
+      abilities: ['alien_grenade']
 
   ## Everything else
 
@@ -72,20 +100,22 @@ $ ->
   populate_level_fragment = (x0, y0) ->
     x = x0 + random_int(4)
     y = y0 + random_int(4)
-    switch random_int(10)
+    switch random_int(20)
       when 0
         aliens.push create_sectoid(x, y)
       when 1
+        aliens.push create_thin_man(x, y)
+      when 2
         aliens.push create_muton(x, y)
-      when 2, 3
+      when 3
+        aliens.push create_muton_elite(x, y)
+      when 4, 5
         objects.push x: x, y: y,     style: "car"
         objects.push x: x, y: y + 1, style: "car"
-
-      when 4, 5
+      when 6, 7
         objects.push x: x,     y: y, style: "car"
         objects.push x: x + 1, y: y, style: "car"
-
-      when 6, 7
+      when 8, 9, 10, 11
         objects.push x: x0,   y: y0,   style: "wall"
         objects.push x: x0,   y: y0+1, style: "wall"
         objects.push x: x0,   y: y0+2, style: "door"
@@ -102,6 +132,7 @@ $ ->
       style: "soldier 1"
       hpmax: 7
       aim: 70
+      defense: 0
       mobility: 5
       gun: 'shotgun'
       abilities: ['run_and_gun']
@@ -112,6 +143,7 @@ $ ->
       style: "soldier 2"
       hpmax: 7
       aim: 67
+      defense: 0
       mobility: 5
       gun: 'lmg'
       abilities: ['fire_rocket']
@@ -122,6 +154,7 @@ $ ->
       style: "soldier 3"
       hpmax: 6
       aim: 75
+      defense: 0
       mobility: 5
       gun: 'sniper_rifle'
       abilities: {}
@@ -132,6 +165,7 @@ $ ->
       style: "soldier 4"
       hpmax: 7
       aim: 70
+      defense: 0
       mobility: 5
       gun: 'rifle'
       abilities: {}
@@ -152,6 +186,7 @@ $ ->
       soldier.hp = soldier.hpmax
       soldier.cooldown = {}
       soldier.actions = 2
+      soldier.ammo = guns[soldier.gun].ammomax
 
     for i in [0..5]
       for j in [0..5]
@@ -224,7 +259,7 @@ $ ->
       if soldier.overwatch
         updated.append "<div>On overwatch</div>"
       updated.append "<div><b>Equipment</b></div>"
-      updated.append "<div>#{soldier.gun}</div>"
+      updated.append "<div>#{soldier.gun} (#{soldier.ammo}/#{guns[soldier.gun].ammomax})</div>"
       updated.append "<div><b>Abilities</b></div>"
       for ability in soldier.abilities
         updated.append "<div>#{ability}</div>"
@@ -254,31 +289,35 @@ $ ->
         return true
     false
 
+  start_unit_turn = (unit) ->
+    if unit.hp > 0
+      unit.actions = 2
+    else
+      unit.actions = 0
+    unit.overwatch = false
+
   process_alien_actions = (alien) ->
     return if alien.hp is 0
     random_move alien
+    if alien.ammo == 0
+      alien.ammo = guns[alien.gun].ammomax
+      ailen.actions = 0
+      return
     for soldier in live_soldiers()
       if in_fire_range(alien, soldier)
         fire_action alien, soldier
-    random_move alien  if alien.actions > 0
+        break
+    random_move alien if alien.actions > 0
 
   aliens_turn = ->
     for alien in aliens
-      if alien.hp > 0
-        alien.actions = 2
-      else
-        alien.actions = 0
-      alien.overwatch = false
+      start_unit_turn alien
     for alien in live_aliens()
       process_alien_actions alien
 
   start_new_turn = ->
     for soldier in soldiers
-      if soldier.hp > 0
-        soldier.actions = 2
-      else
-        soldier.actions = 0
-      soldier.overwatch = false
+      start_unit_turn soldier
     current_mode = "move"
     current_soldier_idx = 0
     unless all_soldiers_dead()
@@ -318,9 +357,17 @@ $ ->
     aliens_turn()
     start_new_turn()
 
+  reload_gun = ->
+    soldier = current_soldier()
+    gun = guns[soldier.gun]
+    soldier.ammo = gun.ammomax
+    soldier.actions = 0
+    next_soldier()
+
   overwatch = ->
-    current_soldier().overwatch = true
-    current_soldier().actions = 0
+    soldier = current_soldier()
+    soldier.overwatch = true
+    soldier.actions = 0
     next_soldier()
 
   highlight_mouseover = ->
@@ -362,15 +409,21 @@ $ ->
     actions = []
     actions.push key: 'e', label: 'End turn'
     if soldier.hp > 0
+      if soldier.ammo < gun.ammomax
+        actions.push key: 'r', label: 'Reload'
       if current_mode == 'fire'
         actions.push key: 'm', label: 'Move'
-      if !gun.two_actions or soldier.actions == 2
-        actions.push key: 'o', label: 'Overwatch'
-        if current_mode == 'move'
-          if any_alien_in_range()
-            actions.push key: 'f', label: 'Fire'
-          else
-            actions.push key: 'f', label: 'Fire', inactive: 'no targets in range'
+      if soldier.ammo > 0
+        if !gun.two_actions or soldier.actions == 2
+          actions.push key: 'o', label: 'Overwatch'
+          if current_mode == 'move'
+            if any_alien_in_range()
+              actions.push key: 'f', label: 'Fire'
+            else
+              actions.push key: 'f', label: 'Fire', inactive: 'no targets in range'
+      else
+        actions.push key: 'o', label: 'Overwatch', inactive: 'no ammo'
+        actions.push key: 'f', label: 'Fire', inactive: 'no ammo'
     if find_next_soldier_idx() isnt null
       actions.push key: 'n', label: 'Next soldier'
     _.sortBy actions, (action) ->
@@ -386,6 +439,7 @@ $ ->
     end_turn() if key is 'e'
     fire_mode() if key is 'f'
     move_mode() if key is 'm'
+    reload_gun() if key is 'r'
     next_soldier() if key is 'n'
     overwatch() if key is 'o'
 
@@ -469,6 +523,7 @@ $ ->
     gun = guns[shooter.gun]
     chance = hit_chance(shooter, target)
     shooter.actions = 0
+    shooter.ammo -= 1
     return unless Math.random() * 100 < chance
     if Math.random() * 100 < gun.crit_chance
       take_damage target, gun.damage
@@ -565,7 +620,6 @@ $ ->
   generate_initial_squad()
   generate_level()
   start_new_turn()
+  # TODO: window.requestAnimationFrame(main_loop); ???
   setInterval main_loop, 1000.0 / 60.0
   null
-
-# TODO: window.requestAnimationFrame(main_loop); ???
