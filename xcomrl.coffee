@@ -21,6 +21,7 @@ $ ->
     lmg: {damage: 4, crit: 6, crit_chance: 0, range: 10}
     sniper_rifle: {damage: 4, crit: 6, crit_chance: 25, range: 20, min_range: 5, two_actions: true}
     plasma_pistol: {damage: 3, crit: 4, crit_chance: 10, range: 10}
+    pistol: {damage: 1, crit: 1, crit_chance: 1, range: 10}
     light_plasma_rifle: {damage: 5, crit: 7, crit_chance: 10, range: 10}
 
   ## Instance variables
@@ -76,8 +77,7 @@ $ ->
         objects.push x: x, y: y + 1, style: "car"
 
       when 4, 5
-        objects.push x: x, y: y,     style: "car"
-
+        objects.push x: x,     y: y, style: "car"
         objects.push x: x + 1, y: y, style: "car"
 
       when 6, 7
@@ -198,21 +198,30 @@ $ ->
   current_soldier = ->
     soldiers[current_soldier_idx]
 
+  replace_content_if_differs = (target, fn) ->
+    source = $("<div></div>")
+    fn source
+    source_html = source[0].innerHTML
+    target_html = target[0].innerHTML
+    if source_html != target_html
+      target.empty()
+      target.append source_html
+
   display_soldier_info = (soldier) ->
-    $("#soldier_info").empty()
-    $("#soldier_info").append "<div>Squaddie #{soldier.name}</div>"
-    $("#soldier_info").append "<div>HP: #{soldier.hp}/#{soldier.hpmax}</div>"
-    $("#soldier_info").append "<div>Aim: #{soldier.aim}</div>"
-    $("#soldier_info").append "<div>Mobility: #{soldier.mobility}</div>"
-    $("#soldier_info").append "<div>XP: #{soldier.xp}</div>"
-    $("#soldier_info").append "<div>Actions: #{soldier.actions}/2</div>"
-    if soldier.overwatch
-      $("#soldier_info").append "<div>On overwatch</div>"
-    $("#soldier_info").append "<div><b>Equipment</b></div>"
-    $("#soldier_info").append "<div>#{soldier.gun}</div>"
-    $("#soldier_info").append "<div><b>Abilities</b></div>"
-    for ability in soldier.abilities
-      $("#soldier_info").append "<div>#{ability}</div>"
+    replace_content_if_differs $("#soldier_info"), (updated) ->
+      updated.append "<div>Squaddie #{soldier.name}</div>"
+      updated.append "<div>HP: #{soldier.hp}/#{soldier.hpmax}</div>"
+      updated.append "<div>Aim: #{soldier.aim}</div>"
+      updated.append "<div>Mobility: #{soldier.mobility}</div>"
+      updated.append "<div>XP: #{soldier.xp}</div>"
+      updated.append "<div>Actions: #{soldier.actions}/2</div>"
+      if soldier.overwatch
+        updated.append "<div>On overwatch</div>"
+      updated.append "<div><b>Equipment</b></div>"
+      updated.append "<div>#{soldier.gun}</div>"
+      updated.append "<div><b>Abilities</b></div>"
+      for ability in soldier.abilities
+        updated.append "<div>#{ability}</div>"
 
   highlight_current_soldier = ->
     x = current_soldier().x
@@ -373,61 +382,53 @@ $ ->
     overwatch() if key is 'o'
 
   display_available_actions = ->
-    $("#actions").empty()
-    for action in potential_actions()
-      if action.inactive
-        $("#actions").append("<div class='inactive_action'>#{action.key} #{action.label} (#{action.inactive})</div>")
-      else
-        $("#actions").append("<div class='action' data-key='#{action.key}'>#{action.key} #{action.label}</div>")
+    replace_content_if_differs $("#actions"), (updated) ->
+      for action in potential_actions()
+        if action.inactive
+          updated.append("<div class='inactive_action'>#{action.key} #{action.label} (#{action.inactive})</div>")
+        else
+          updated.append("<div class='action' data-key='#{action.key}'>#{action.key} #{action.label}</div>")
 
   find_object = (x, y) ->
-    try
-      for soldier in soldiers
-        if soldier.x is x and soldier.y is y
-          throw type: "soldier", object: soldier
-      for alien in aliens
-        if alien.x is x and alien.y is y
-          throw type: "alien", object: alien
-      for object in objects
-        if object.x is x and object.y is y
-          throw type: "object", object: object
-      throw type: "empty"
-    catch err
-      # Found the object!
-      return err
+    for soldier in soldiers
+      if soldier.x is x and soldier.y is y
+        return type: "soldier", object: soldier
+    for alien in aliens
+      if alien.x is x and alien.y is y
+        return type: "alien", object: alien
+    for object in objects
+      if object.x is x and object.y is y
+        return type: "object", object: object
+    return type: "empty"
 
   is_object_present = (x, y) ->
-    found = find_object(x, y)
-    found.type isnt "empty"
+    find_object(x, y).type isnt "empty"
 
   display_mouseover_object = ->
-    $("#mouseover_object").empty()
-    return if mouse_x is null or mouse_y is null
-    $("#mouseover_object").append "<div class='coordinates'>x=" + mouse_x + " y=" + mouse_y + "</div>"
-    found = find_object(mouse_x, mouse_y)
-    object = found.object
-    switch found.type
-      when "soldier"
-        $("#mouseover_object").append "<div>Squaddie #{object.name} (#{object.hp}/#{object.hpmax})</div>"
-      when "alien"
-        $("#mouseover_object").append "<div>Alien #{object.style} (#{object.hp}/#{object.hpmax})</div>"
-        if in_fire_range(current_soldier(), object)
-          $("#mouseover_object").append "<div>In range (hit chance #{hit_chance(current_soldier(), object)}%)</div>"
-        else
-          $("#mouseover_object").append "<div>Out of range</div>"
-      when "object"
-        $("#mouseover_object").append "<div>object #{object.style}</div>"
-      when "empty"
-        $("#mousover_object").append "<div>Empty</div>"
+    replace_content_if_differs $("#mouseover_object"), (updated) ->
+      return if mouse_x is null or mouse_y is null
+      updated.append "<div class='coordinates'>x=" + mouse_x + " y=" + mouse_y + "</div>"
+      found = find_object(mouse_x, mouse_y)
+      object = found.object
+      switch found.type
+        when "soldier"
+          updated.append "<div>Squaddie #{object.name} (#{object.hp}/#{object.hpmax})</div>"
+        when "alien"
+          updated.append "<div>Alien #{object.style} (#{object.hp}/#{object.hpmax})</div>"
+          if in_fire_range(current_soldier(), object)
+            updated.append "<div>In range (hit chance #{hit_chance(current_soldier(), object)}%)</div>"
+          else
+            updated.append "<div>Out of range</div>"
+        when "object"
+          updated.append "<div>object #{object.style}</div>"
+        when "empty"
+          updated.append "<div>Empty</div>"
 
   in_move_range = (soldier, x, y) ->
     range = compute_range(soldier.x, soldier.y, soldier.mobility)
-    try
-      for cell in range
-        throw "found" if cell.x is x and cell.y is y
-      return false
-    catch err
-      return true
+    for cell in range
+      return true if cell.x is x and cell.y is y
+    false
 
   take_damage = (target, damage) ->
     target.hp -= damage
@@ -489,7 +490,7 @@ $ ->
       return unless in_fire_range(soldier, x: x, y: y)
       object_clicked = find_object(x, y)
       return if object_clicked.type != "alien"
-      fire_action soldier, found.object
+      fire_action soldier, object_clicked.object
     next_soldier()  if soldier.actions is 0
 
   all_soldiers_dead = ->
@@ -499,16 +500,15 @@ $ ->
     (true for alien in aliens when alien.hp > 0).length == 0
 
   display_info = ->
-    $("#map_info").empty()
-    $("#map_info").append("Level #{level_number}")
+    replace_content_if_differs $("#map_info"), (updated) ->
+      updated.append("Level #{level_number}")
     display_soldier_info current_soldier()
     display_mouseover_object()
     display_available_actions()
-    $("#game_status").empty()
-    if all_soldiers_dead()
-      $("#game_status").append("You lost!")
+    replace_content_if_differs $("#game_status"), (updated) ->
+      if all_soldiers_dead()
+        updated.append("You lost!")
     if all_aliens_dead()
-      # $("#game_status").append("You won!")
       generate_level()
 
   draw_map = ->
@@ -546,8 +546,7 @@ $ ->
     perform_action String.fromCharCode(event.which).toLowerCase()
     null
 
-  # TODO: Should be click not mousedown but it does not work due to excessive sidebar refreshes
-  $("#actions").on "mousedown", ".action", (event) ->
+  $("#actions").on "click", ".action", (event) ->
     perform_action $(event.target).data("key")
     null
 

@@ -1,11 +1,20 @@
+* new_alien(type, x, y)
+* ammo
+* reload action
+
+* per-action cooldown system (reset on new_level etc.)
+* a few more randomly generated objects
+* make run&gun work
+
 * fire trails
 * hit/miss/crit display
 
-* display detailed gun stats
-* ammo
-* per-action cooldown system (reset on new_level etc.)
+* display detailed gun stats (as mouseover popup?)
+* displapy ability description (as mouseover popup?)
+* inter-level summary screen
+* a few more alien types (thin men, floaters, heavy floaters, muton elites etc.) - for now possibly without any special stuff
+
 * there's infinite loop during alien turn sometimes (when only dead soldiers are in range)
-* a few more randomly generated objects
 * low cover objects
 * sidearms
 * soldiers and aliens in one structure
@@ -17,7 +26,6 @@
 * level ups (for at least stats)
 * full line of sight test for shooting (maybe ignoring covers)
 * make rocket work
-* make run&gun work
 * dashing
 * class ability for snipers
 * class ability for supports
@@ -31,19 +39,19 @@ Ability tree idea - training roulette pool:
 * resilience
 * SCOPE
 * executioner
-* bring em on (needs: squad line of sight)
-* HEAT ammo (needs: robotic soldiers)
-* grenadier (needs: grenades)
-* tactical sense (needs: line of sight)
-* aggression (needs: line of sight)
-* field medic (needs: per-soldier action system)
-* low cover (needs: low cover)
 * ammo conservation (needs: ammo)
+* disabling shot (needs: ammo)
+* grenadier (needs: grenades)
 * alien granades (needs: granades)
-* arc thrower (depends on class)
-* rocketeer (needs: fire rocket, depends on class)
-* gunslinger (needs: pistols)
 * headshot (depends on class)
 * snapshot (depends on class)
-* disabling shot (needs: ammo)
+* field medic (needs: per-soldier action system)
+* bring em on (needs: squad line of sight)
+* HEAT ammo (needs: robotic soldiers)
+* tactical sense (needs: line of sight)
+* aggression (needs: line of sight)
+* low cover (needs: low cover)
+* gunslinger (needs: pistols, exclusive with arc thrower)
+* arc thrower (needs~ pistol, goes into pistol slot, exclusive with gunslinger)
+* rocketeer (needs: fire rocket, depends on class)
 * will to survive (depends on correct flanking system)
