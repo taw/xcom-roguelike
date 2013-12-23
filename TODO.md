@@ -1,9 +1,8 @@
+* cleanup decorations table
+
 * per-action cooldown system (reset on new_level etc.)
 * a few more randomly generated objects
 * make run&gun work
-
-* fire trails
-* hit/miss/crit display
 
 * display detailed gun stats (as mouseover popup?)
 * displapy ability description (as mouseover popup?)
@@ -12,6 +11,8 @@
 * melee aliens (berserkers) - for now without any special stuff
 
 * aliens should shoot most vulnerable soldier
+* aliens should take 1 second or so per action (once movement trail are done)
+
 * low cover objects
 * sidearms
 * soldiers and aliens in one structure

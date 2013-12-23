@@ -40,6 +40,7 @@ $ ->
   mouse_y = null
   current_mode = null
   level_number = 0
+  decorations = []
 
   ## Core ext
   random_int = (n) ->
@@ -47,6 +48,9 @@ $ ->
 
   dist2 = (x, y) ->
     Math.sqrt x * x + y * y
+
+  current_time = () ->
+    (new Date()).getTime()
 
   ## Create aliens
   create_unit = (x,y,fn) ->
@@ -362,12 +366,24 @@ $ ->
     gun = guns[soldier.gun]
     soldier.ammo = gun.ammomax
     soldier.actions = 0
+    decorations.push
+      type: 'text'
+      x: soldier.x
+      y: soldier.y
+      msg: 'Reload'
+      timeout: current_time() + 4000
     next_soldier()
 
   overwatch = ->
     soldier = current_soldier()
     soldier.overwatch = true
     soldier.actions = 0
+    decorations.push
+      type: 'text'
+      x: soldier.x
+      y: soldier.y
+      msg: 'Overwatch'
+      timeout: current_time() + 4000
     next_soldier()
 
   highlight_mouseover = ->
@@ -519,18 +535,37 @@ $ ->
     if shooter.xp isnt null
       shooter.xp += 30
 
+  fire_trail = (shooter, target, msg) ->
+    decorations.push
+      type: 'fire trail'
+      x0: shooter.x
+      y0: shooter.y
+      x1: target.x
+      y1: target.y
+      timeout: current_time() + 2000
+    decorations.push
+      type: 'text'
+      x: target.x
+      y: target.y
+      msg: msg
+      timeout: current_time() + 4000
+
   fire_action = (shooter, target) ->
     gun = guns[shooter.gun]
     chance = hit_chance(shooter, target)
     shooter.actions = 0
     shooter.ammo -= 1
-    return unless Math.random() * 100 < chance
-    if Math.random() * 100 < gun.crit_chance
-      take_damage target, gun.damage
+    if Math.random() * 100 < chance
+      if Math.random() * 100 < gun.crit_chance
+        take_damage target, gun.damage
+        fire_trail shooter, target, "#{gun.damage}"
+      else
+        take_damage target, gun.crit
+        fire_trail shooter, target, "#{gun.crit}"
+      if target.hp is 0
+        register_kill shooter, target
     else
-      take_damage target, gun.crit
-    if target.hp is 0
-      register_kill shooter, target
+      fire_trail shooter, target, "X"
 
   in_fire_range = (shooter, target) ->
     gun_range = guns[shooter.gun].range
@@ -574,6 +609,23 @@ $ ->
     if all_aliens_dead()
       generate_level()
 
+  display_decorations = ->
+    time = current_time()
+    for decoration in decorations
+      if time > decoration.timeout
+        continue
+      console.log decoration
+      switch decoration.type
+        when 'fire trail'
+          ctx.strokeStyle = '#f00'
+          ctx.beginPath()
+          ctx.moveTo decoration.x0*24+12, decoration.y0*24+12
+          ctx.lineTo decoration.x1*24+12, decoration.y1*24+12
+          ctx.stroke()
+        when 'text'
+          ctx.fillStyle = '#f00'
+          ctx.fillText decoration.msg, decoration.x*24+12 , decoration.y*24+12
+
   draw_map = ->
     clear_canvas()
     draw_grid()
@@ -584,6 +636,7 @@ $ ->
       highlight_current_soldier_move_range() if current_mode is "move"
       highlight_current_soldier_fire_range() if current_mode is "fire"
     display_info()
+    display_decorations()
 
   $(canvas).bind "mousemove", (event) ->
     rect = canvas.getBoundingClientRect()
