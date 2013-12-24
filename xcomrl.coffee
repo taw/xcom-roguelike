@@ -45,11 +45,36 @@ class Unit
     get: -> @gun.ammomax
   action_reload: () ->
     @ammo = @ammomax
+    @actions = 0
+  action_overwatch: () ->
+    @overwatch = true
+    @actions = 0
+  register_kill: (victim) ->
+  take_damage: (damage) ->
+    @hp -= damage
+    if @hp <= 0
+      @hp = 0
+      @style = "dead"
+      @actions = 0
+      @overwatch = false
+  aim_penalty_for_distance: (distance) ->
+    # Aim penalty of up to -20 if too far
+    if @gun.far_range and distance >= @gun.far_range
+      Math.round(20 * (distance - @gun.far_range) / (@gun.range - @gun.far_range))
+    # Aim penalty of up to -20 if too close
+    else if @gun.near_range and @distance <= @gun.near_range
+      Math.round(20 * (@gun.near_range - distance) / @gun.near_range)
+    else
+      0
+  in_fire_range: (target) ->
+    dist2(@x - target.x, @y - target.y) <= @gun.range
 
 class Soldier extends Unit
   constructor: (attrs) ->
     super
     @xp ||= 0
+  register_kill: (victim) ->
+    @xp += 30
 
 $ ->
   ## Static global data
@@ -312,39 +337,30 @@ $ ->
 
   any_alien_in_range = ->
     for alien in live_aliens()
-      if in_fire_range(current_soldier(), alien)
-        return true
+      return true if current_soldier().in_fire_range(alien)
     false
-
-  start_unit_turn = (unit) ->
-    if unit.hp > 0
-      unit.actions = 2
-    else
-      unit.actions = 0
-    unit.overwatch = false
 
   process_alien_actions = (alien) ->
     return if alien.hp is 0
     random_move alien
     if alien.ammo == 0
-      alien.ammo = alien.ammomax
-      ailen.actions = 0
+      alien.action_reload()
       return
     for soldier in live_soldiers()
-      if in_fire_range(alien, soldier)
+      if alien.in_fire_range(soldier)
         fire_action alien, soldier
         break
     random_move alien if alien.actions > 0
 
   aliens_turn = ->
     for alien in aliens
-      start_unit_turn alien
+      alien.start_new_turn()
     for alien in live_aliens()
       process_alien_actions alien
 
   start_new_turn = ->
     for soldier in soldiers
-      start_unit_turn soldier
+      soldier.start_new_turn()
     current_mode = "move"
     current_soldier_idx = 0
     unless all_soldiers_dead()
@@ -352,16 +368,12 @@ $ ->
         current_soldier_idx++
 
   find_next_soldier_idx = ->
-    return null if all_soldiers_dead() # hack, not sure if necessary
-    i = current_soldier_idx + 1
-    until i is current_soldier_idx
-      i %= soldiers.length
-      break if soldiers[i].actions > 0
-      i += 1
-    if i is current_soldier_idx
-      null
-    else
-      i
+    for i in [(current_soldier_idx+1)...soldiers.length]
+      return i if soldiers[i].actions > 0
+    if current_soldier_idx != 0
+      for i in [0..(current_soldier_idx-1)]
+        return i if soldiers[i].actions > 0
+    null
 
   ## Actions
 
@@ -384,10 +396,9 @@ $ ->
     aliens_turn()
     start_new_turn()
 
-  reload_gun = ->
+  action_reload = ->
     soldier = current_soldier()
-    soldier.ammo = soldier.ammomax
-    soldier.actions = 0
+    soldier.action_reload()
     decorations.push
       type: 'text'
       x: soldier.x
@@ -396,10 +407,9 @@ $ ->
       timeout: current_time() + 3000
     next_soldier()
 
-  overwatch = ->
+  action_overwatch = ->
     soldier = current_soldier()
-    soldier.overwatch = true
-    soldier.actions = 0
+    soldier.action_overwatch()
     decorations.push
       type: 'text'
       x: soldier.x
@@ -436,7 +446,7 @@ $ ->
 
   highlight_current_soldier_fire_range = ->
     for alien in live_aliens()
-      if in_fire_range(current_soldier(), alien)
+      if current_soldier().in_fire_range(alien)
         ctx.lineWidth = 2
         draw_all_bounds alien.x, alien.y, "#00a"
 
@@ -474,12 +484,14 @@ $ ->
 
   perform_action = (key) ->
     return unless action_is_valid(key)
+    # Interface/global action
     end_turn() if key is 'e'
     fire_mode() if key is 'f'
     move_mode() if key is 'm'
-    reload_gun() if key is 'r'
     next_soldier() if key is 'n'
-    overwatch() if key is 'o'
+    # Soldier actions
+    action_reload() if key is 'r'
+    action_overwatch() if key is 'o'
 
   display_available_actions = ->
     replace_content_if_differs $("#actions"), (updated) ->
@@ -515,7 +527,7 @@ $ ->
           updated.append "<div>Squaddie #{object.name} (#{object.hp}/#{object.hpmax})</div>"
         when "alien"
           updated.append "<div>Alien #{object.style} (#{object.hp}/#{object.hpmax})</div>"
-          if in_fire_range(current_soldier(), object)
+          if current_soldier().in_fire_range(object)
             updated.append "<div>In range (hit chance #{hit_chance(current_soldier(), object)}%)</div>"
           else
             updated.append "<div>Out of range</div>"
@@ -530,38 +542,17 @@ $ ->
       return true if cell.x is x and cell.y is y
     false
 
-  take_damage = (target, damage) ->
-    target.hp -= damage
-    if target.hp <= 0
-      target.hp = 0
-      target.style = "dead"
-
   hit_chance = (shooter, target) ->
-    chance = shooter.aim - target.defense
     distance = dist2(shooter.x - target.x, shooter.y - target.y)
-    gun = shooter.gun
-
-    # Aim penalty of up to -20 if too far
-    if gun.far_range and distance >= gun.far_range
-      chance -= Math.round(20 * (distance - gun.far_range) / (gun.range - gun.far_range))
-
-    # Aim penalty of up to -20 if too close
-    if gun.near_range and distance <= gun.near_range
-      chance -= Math.round(20 * (gun.near_range - distance) / gun.near_range)
-
+    chance = shooter.aim - target.defense - shooter.aim_penalty_for_distance(distance)
     # -40 if next to an object (TODO: flanking direction)
     chance -= 40  if find_object(target.x + 1, target.y).type is "object" or find_object(target.x - 1, target.y).type is "object" or find_object(target.x, target.y + 1).type is "object" or find_object(target.x, target.y - 1).type is "object"
-
     if chance > 100
       100
     else if chance < 0
       0
     else
       chance
-
-  register_kill = (shooter, target) ->
-    if shooter.xp isnt null
-      shooter.xp += 30
 
   fire_trail = (shooter, target, msg) ->
     decorations.push
@@ -585,19 +576,15 @@ $ ->
     shooter.ammo -= 1
     if Math.random() * 100 < chance
       if Math.random() * 100 < gun.crit_chance
-        take_damage target, gun.damage
+        target.take_damage gun.damage
         fire_trail shooter, target, "#{gun.damage}"
       else
-        take_damage target, gun.crit
+        target.take_damage gun.crit
         fire_trail shooter, target, "#{gun.crit}"
       if target.hp is 0
-        register_kill shooter, target
+        shooter.register_kill target
     else
       fire_trail shooter, target, "X"
-
-  in_fire_range = (shooter, target) ->
-    distance = dist2(shooter.x - target.x, shooter.y - target.y)
-    distance <= shooter.gun.range
 
   clicked_on = (x, y) ->
     soldier = current_soldier()
@@ -606,13 +593,13 @@ $ ->
     if object_clicked.type == "soldier"
       current_soldier_idx = soldiers.indexOf(object_clicked.object)
 
-    if current_mode is "move"
+    if current_mode is "move" and soldier.actions > 0
       if in_move_range(soldier, x, y)
         soldier.x = x
         soldier.y = y
         soldier.actions -= 1
     if current_mode is "fire"
-      return unless in_fire_range(soldier, x: x, y: y)
+      return unless soldier.in_fire_range(x: x, y: y)
       object_clicked = find_object(x, y)
       return if object_clicked.type != "alien"
       fire_action soldier, object_clicked.object
