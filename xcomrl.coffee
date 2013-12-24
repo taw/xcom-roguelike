@@ -88,8 +88,10 @@ $ ->
     muton: {icon: "m",bg: "#800",fg: "#f00"}
     muton_elite: {icon: "e",bg: "#800",fg: "#f00"}
     car: {icon: "c",bg: "#afa",fg: "#0f0"}
-    wall: {icon: "W",bg: "#afa",fg: "#0f0"}
-    door: {icon: "D",bg: "#aaf",fg: "#00f"}
+    wall: {icon: "W",bg: "#afa",fg: "#080"}
+    door: {icon: "D",bg: "#aaf",fg: "#008"}
+    "abducted cow": {icon: "C",bg: "#afa",fg: "#080"}
+    rock: {icon: "r",bg: "#afa",fg: "#8f8"}
     movement_highlight: {bg: "#ccf"}
     dash_movement_highlight: {bg: "#eef"}
     dead: {icon: "X",bg: "#000",fg: "#800"}
@@ -171,21 +173,25 @@ $ ->
         else
           aliens.push create_muton_elite(x, y)
       when 4, 5
-        objects.push x: x, y: y,     style: "car"
-        objects.push x: x, y: y + 1, style: "car"
+        objects.push x: x, y: y,     style: "car", cover: 20
+        objects.push x: x, y: y + 1, style: "car", cover: 20
       when 6, 7
-        objects.push x: x,     y: y, style: "car"
-        objects.push x: x + 1, y: y, style: "car"
+        objects.push x: x,     y: y, style: "car", cover: 20
+        objects.push x: x + 1, y: y, style: "car", cover: 20
       when 8, 9, 10, 11
-        objects.push x: x0,   y: y0,   style: "wall"
-        objects.push x: x0,   y: y0+1, style: "wall"
-        objects.push x: x0,   y: y0+2, style: "door"
-        objects.push x: x0,   y: y0+3, style: "wall"
-        objects.push x: x0,   y: y0+4, style: "wall"
-        objects.push x: x0+1, y: y0,   style: "wall"
-        objects.push x: x0+2, y: y0,   style: "door"
-        objects.push x: x0+3, y: y0,   style: "wall"
-        objects.push x: x0+4, y: y0,   style: "wall"
+        objects.push x: x0,   y: y0,   style: "wall", cover: 40
+        objects.push x: x0,   y: y0+1, style: "wall", cover: 40
+        objects.push x: x0,   y: y0+2, style: "door", cover: 40
+        objects.push x: x0,   y: y0+3, style: "wall", cover: 40
+        objects.push x: x0,   y: y0+4, style: "wall", cover: 40
+        objects.push x: x0+1, y: y0,   style: "wall", cover: 40
+        objects.push x: x0+2, y: y0,   style: "door", cover: 40
+        objects.push x: x0+3, y: y0,   style: "wall", cover: 40
+        objects.push x: x0+4, y: y0,   style: "wall", cover: 40
+      when 12
+        objects.push x: x,    y: y,    style: "abducted cow", cover: 40
+      when 13
+        objects.push x: x,    y: y,    style: "rock", cover: 40
 
   generate_initial_squad = ->
     soldiers.push(
@@ -535,6 +541,7 @@ $ ->
           updated.append "<div>#{cover_status(current_soldier(), object).description}</div>"
         when "object"
           updated.append "<div>object #{object.style}</div>"
+          updated.append "<div>Cover level #{object.cover}</div>"
         when "empty"
           updated.append "<div>Empty</div>"
 
@@ -548,7 +555,7 @@ $ ->
     # TODO: implement low cover too
     object = find_object(x, y)
     if object.type == 'object'
-      40
+      object.cover
     else
       0
 

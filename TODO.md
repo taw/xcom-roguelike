@@ -9,8 +9,6 @@
 * grenades
 * make rocket work
 
-* a few more randomly generated objects
-* low cover objects
 * destructible objects (with explosives only for now)
 
 * make run&gun work
@@ -35,6 +33,7 @@
 * class ability for snipers
 * class ability for supports
 * maybe free aim (once there are destructible covers)
+* make doors actually work
 
 * A* http://www.briangrinstead.com/blog/astar-search-algorithm-in-javascript-updated
 * perk tree ideas from http://www.nexusmods.com/xcom/mods/88/ ?
@@ -61,3 +60,5 @@ Ability tree idea - training roulette pool:
 * arc thrower (needs: pistol, goes into pistol slot, exclusive with gunslinger)
 * rocketeer (needs: fire rocket, depends on class)
 * will to survive (depends on correct flanking system)
+* laser weapons
+* light plasma weapons (requires laser weapons)
