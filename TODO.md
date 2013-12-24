@@ -3,8 +3,6 @@
 * share more code between soldiers and aliens
 * Rewriting the code with classes, attribute getters etc. will probably clean up a lot of things
 
-* different alien types by level
-
 * aliens should shoot most vulnerable soldier
 
 * inter-level summary screen

@@ -161,14 +161,15 @@ $ ->
     x = x0 + random_int(4)
     y = y0 + random_int(4)
     switch random_int(20)
-      when 0
-        aliens.push create_sectoid(x, y)
-      when 1
-        aliens.push create_thin_man(x, y)
-      when 2
-        aliens.push create_muton(x, y)
-      when 3
-        aliens.push create_muton_elite(x, y)
+      when 0, 1, 2, 3
+        if level_number <= 2
+          aliens.push create_sectoid(x, y)
+        else if level_number <= 4
+          aliens.push create_thin_man(x, y)
+        else if level_number <= 6
+          aliens.push create_muton(x, y)
+        else
+          aliens.push create_muton_elite(x, y)
       when 4, 5
         objects.push x: x, y: y,     style: "car"
         objects.push x: x, y: y + 1, style: "car"
