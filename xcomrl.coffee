@@ -1,3 +1,56 @@
+## Core ext
+random_int = (n) ->
+  Math.floor Math.random() * n
+
+dist2 = (x, y) ->
+  Math.sqrt x * x + y * y
+
+current_time = () ->
+  (new Date()).getTime()
+
+Function::property = (prop, desc) ->
+  Object.defineProperty @prototype, prop, desc
+
+## Guns
+GunTypes =
+  pistol: {damage: 1, crit: 1, crit_chance: 1, range: 10}
+  plasma_pistol: {damage: 3, crit: 4, crit_chance: 10, range: 10}
+  shotgun: {damage: 4, crit: 6, crit_chance: 20, range: 10, far_range: 5, ammomax: 4}
+  rifle: {damage: 3, crit: 4, crit_chance: 10, range: 10, ammomax: 4}
+  light_plasma_rifle: {damage: 5, crit: 7, crit_chance: 10, range: 10, ammomax: 4}
+  plasma_rifle: {damage: 7, crit: 10, crit_chance: 10, range: 10, ammomax: 4}
+  sniper_rifle: {damage: 4, crit: 6, crit_chance: 25, range: 20, min_range: 5, two_actions: true, ammomax: 4}
+  lmg: {damage: 4, crit: 6, crit_chance: 0, range: 10, ammomax: 3}
+  heavy_plasma: {damage: 9, crit: 13, crit_chance: 0, range: 10, ammomax: 3}
+
+## Unit
+class Unit
+  constructor: (attrs) ->
+    for key, val of attrs
+      @[key] = val
+    @defense ||= 0
+    @abilities ||= []
+  start_new_level: () ->
+    @hp = @hpmax
+    @ammo = @ammomax
+  start_new_turn: () ->
+    if @hp > 0
+      @actions = 2
+    else
+      @actions = 0
+    @overwatch = false
+  @property 'gun',
+    get: -> GunTypes[@gun_type]
+  @property 'ammomax',
+    get: -> @gun.ammomax
+  action_reload: () ->
+    @ammo = @ammomax
+
+class Soldier extends Unit
+  constructor: (attrs) ->
+    super
+    @xp ||= 0
+
 $ ->
   ## Static global data
   styles =
@@ -16,17 +69,6 @@ $ ->
     dash_movement_highlight: {bg: "#eef"}
     dead: {icon: "X",bg: "#000",fg: "#800"}
 
-  guns =
-    pistol: {damage: 1, crit: 1, crit_chance: 1, range: 10}
-    plasma_pistol: {damage: 3, crit: 4, crit_chance: 10, range: 10}
-    shotgun: {damage: 4, crit: 6, crit_chance: 20, range: 10, far_range: 5, ammomax: 4}
-    rifle: {damage: 3, crit: 4, crit_chance: 10, range: 10, ammomax: 4}
-    light_plasma_rifle: {damage: 5, crit: 7, crit_chance: 10, range: 10, ammomax: 4}
-    plasma_rifle: {damage: 7, crit: 10, crit_chance: 10, range: 10, ammomax: 4}
-    sniper_rifle: {damage: 4, crit: 6, crit_chance: 25, range: 20, min_range: 5, two_actions: true, ammomax: 4}
-    lmg: {damage: 4, crit: 6, crit_chance: 0, range: 10, ammomax: 3}
-    heavy_plasma: {damage: 9, crit: 13, crit_chance: 0, range: 10, ammomax: 3}
-
   ## Instance variables
   canvas = document.getElementById("main_canvas")
   ctx = canvas.getContext("2d")
@@ -42,60 +84,49 @@ $ ->
   level_number = 0
   decorations = []
 
-  ## Core ext
-  random_int = (n) ->
-    Math.floor Math.random() * n
-
-  dist2 = (x, y) ->
-    Math.sqrt x * x + y * y
-
-  current_time = () ->
-    (new Date()).getTime()
-
   ## Create aliens
-  create_unit = (x,y,fn) ->
-    unit = fn()
-    unit.x = x
-    unit.y = y
-    unit.hp = unit.hpmax
-    if unit.gun
-      unit.ammo = guns[unit.gun].ammomax
-    unit.defense ||= 0
-    unit
 
   create_sectoid = (x,y) ->
-    create_unit x, y, ->
+    new Unit
+      x: x
+      y: y
       style: "sectoid"
       hpmax: 3
       mobility: 5
       aim: 65
-      gun: 'plasma_pistol'
+      gun_type: 'plasma_pistol'
 
   create_thin_man = (x,y) ->
-    create_unit x, y, ->
+    new Unit
+      x: x
+      y: y
       style: "thin_man"
       hpmax: 3
       mobility: 7
       aim: 65
-      gun: 'light_plasma_rifle'
+      gun_type: 'light_plasma_rifle'
 
   create_muton = (x,y) ->
-    create_unit x, y, ->
+    new Unit
+      x: x
+      y: y
       style: "muton"
       hpmax: 6
       mobility: 5
       aim: 70
-      gun: 'plasma_rifle'
+      gun_type: 'plasma_rifle'
       abilities: ['alien_grenade']
 
   create_muton_elite = (x,y) ->
-    create_unit x, y, ->
+    new Unit
+      x: x
+      y: y
       style: "muton_elite"
       hpmax: 14
       mobility: 5
       aim: 80
       defense: 20
-      gun: 'heavy_plasma'
+      gun_type: 'heavy_plasma'
       abilities: ['alien_grenade']
 
   ## Everything else
@@ -131,50 +162,44 @@ $ ->
         objects.push x: x0+4, y: y0,   style: "wall"
 
   generate_initial_squad = ->
-    soldiers.push
-      name: "Alice"
-      style: "soldier 1"
-      hpmax: 7
-      aim: 70
-      defense: 0
-      mobility: 5
-      gun: 'shotgun'
-      abilities: ['run_and_gun']
-      xp: 0
-
-    soldiers.push
-      name: "Bob"
-      style: "soldier 2"
-      hpmax: 7
-      aim: 67
-      defense: 0
-      mobility: 5
-      gun: 'lmg'
-      abilities: ['fire_rocket']
-      xp: 0
-
-    soldiers.push
-      name: "Charlie"
-      style: "soldier 3"
-      hpmax: 6
-      aim: 75
-      defense: 0
-      mobility: 5
-      gun: 'sniper_rifle'
-      abilities: {}
-      xp: 0
-
-    soldiers.push
-      name: "Diana"
-      style: "soldier 4"
-      hpmax: 7
-      aim: 70
-      defense: 0
-      mobility: 5
-      gun: 'rifle'
-      abilities: {}
-      xp: 0
-
+    soldiers.push(
+      new Soldier
+        name: "Alice"
+        style: "soldier 1"
+        hpmax: 7
+        aim: 70
+        mobility: 5
+        gun_type: 'shotgun'
+        abilities: ['Run and gun']
+    )
+    soldiers.push(
+      new Soldier
+        name: "Bob"
+        style: "soldier 2"
+        hpmax: 7
+        aim: 67
+        mobility: 5
+        gun_type: 'lmg'
+        abilities: ['Fire rocket']
+    )
+    soldiers.push(
+      new Soldier
+        name: "Charlie"
+        style: "soldier 3"
+        hpmax: 6
+        aim: 75
+        mobility: 5
+        gun_type: 'sniper_rifle'
+    )
+    soldiers.push(
+      new Soldier
+        name: "Diana"
+        style: "soldier 4"
+        hpmax: 7
+        aim: 70
+        mobility: 5
+        gun_type: 'rifle'
+    )
   generate_level = ->
     level_number++
     soldiers[0].x = 1
@@ -186,16 +211,14 @@ $ ->
     soldiers[3].x = 3
     soldiers[3].y = 1
     aliens = []
-    for soldier in soldiers
-      soldier.hp = soldier.hpmax
-      soldier.cooldown = {}
-      soldier.actions = 2
-      soldier.ammo = guns[soldier.gun].ammomax
-
     for i in [0..5]
       for j in [0..5]
         if i isnt 0 or j isnt 0
           populate_level_fragment i * 5, j * 5
+    for soldier in soldiers
+      soldier.start_new_level()
+    for alien in aliens
+      alien.start_new_level()
 
   clear_canvas = ->
     ctx.clearRect 0, 0, canvas.width, canvas.height
@@ -263,7 +286,7 @@ $ ->
       if soldier.overwatch
         updated.append "<div>On overwatch</div>"
       updated.append "<div><b>Equipment</b></div>"
-      updated.append "<div>#{soldier.gun} (#{soldier.ammo}/#{guns[soldier.gun].ammomax})</div>"
+      updated.append "<div>#{soldier.gun_type} (#{soldier.ammo}/#{soldier.ammomax})</div>"
       updated.append "<div><b>Abilities</b></div>"
       for ability in soldier.abilities
         updated.append "<div>#{ability}</div>"
@@ -304,7 +327,7 @@ $ ->
     return if alien.hp is 0
     random_move alien
     if alien.ammo == 0
-      alien.ammo = guns[alien.gun].ammomax
+      alien.ammo = alien.ammomax
       ailen.actions = 0
       return
     for soldier in live_soldiers()
@@ -363,8 +386,7 @@ $ ->
 
   reload_gun = ->
     soldier = current_soldier()
-    gun = guns[soldier.gun]
-    soldier.ammo = gun.ammomax
+    soldier.ammo = soldier.ammomax
     soldier.actions = 0
     decorations.push
       type: 'text'
@@ -420,7 +442,7 @@ $ ->
 
   potential_actions = ->
     soldier = current_soldier()
-    gun = guns[soldier.gun]
+    gun = soldier.gun
 
     actions = []
     actions.push key: 'e', label: 'End turn'
@@ -515,9 +537,9 @@ $ ->
       target.style = "dead"
 
   hit_chance = (shooter, target) ->
-    chance = shooter.aim
+    chance = shooter.aim - target.defense
     distance = dist2(shooter.x - target.x, shooter.y - target.y)
-    gun = guns[shooter.gun]
+    gun = shooter.gun
 
     # Aim penalty of up to -20 if too far
     if gun.far_range and distance >= gun.far_range
@@ -529,7 +551,13 @@ $ ->
 
     # -40 if next to an object (TODO: flanking direction)
     chance -= 40  if find_object(target.x + 1, target.y).type is "object" or find_object(target.x - 1, target.y).type is "object" or find_object(target.x, target.y + 1).type is "object" or find_object(target.x, target.y - 1).type is "object"
-    chance
+
+    if chance > 100
+      100
+    else if chance < 0
+      0
+    else
+      chance
 
   register_kill = (shooter, target) ->
     if shooter.xp isnt null
@@ -551,7 +579,7 @@ $ ->
       timeout: current_time() + 3000
 
   fire_action = (shooter, target) ->
-    gun = guns[shooter.gun]
+    gun = shooter.gun
     chance = hit_chance(shooter, target)
     shooter.actions = 0
     shooter.ammo -= 1
@@ -568,9 +596,8 @@ $ ->
       fire_trail shooter, target, "X"
 
   in_fire_range = (shooter, target) ->
-    gun_range = guns[shooter.gun].range
     distance = dist2(shooter.x - target.x, shooter.y - target.y)
-    distance <= gun_range
+    distance <= shooter.gun.range
 
   clicked_on = (x, y) ->
     soldier = current_soldier()
@@ -606,8 +633,8 @@ $ ->
     replace_content_if_differs $("#game_status"), (updated) ->
       if all_soldiers_dead()
         updated.append("You lost!")
-    if all_aliens_dead()
-      generate_level()
+      else if all_aliens_dead()
+        generate_level()
 
   display_decorations = ->
     time = current_time()

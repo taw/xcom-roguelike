@@ -1,8 +1,13 @@
 * make fire trail for miss look like one
 
-* inter-level summary screen
+* share more code between soldiers and aliens
+* Rewriting the code with classes, attribute getters etc. will probably clean up a lot of things
+
 * different alien types by level
+
 * aliens should shoot most vulnerable soldier
+
+* inter-level summary screen
 * display detailed gun stats (as mouseover popup?)
 * displapy ability description (as mouseover popup?)
 
@@ -31,21 +36,17 @@
 * class ability for supports
 * maybe free aim (once there are destructible covers)
 
-* share more code between soldiers and aliens
-
-* getters/setters to cleanup the code https://gist.github.com/reversepanda/5814547
 * A* http://www.briangrinstead.com/blog/astar-search-algorithm-in-javascript-updated
 * perk tree ideas from http://www.nexusmods.com/xcom/mods/88/ ?
 * Overwatch system will be a big upgrade much later
 * Some not completely stupid level generation as well
-* Rewriting the code with classes, attribute getters etc. will probably clean up a lot of things
 
 Ability tree idea - training roulette pool:
 * resilience
 * SCOPE
 * executioner
-* ammo conservation (needs: ammo)
-* disabling shot (needs: ammo)
+* ammo conservation
+* disabling shot
 * grenadier (needs: grenades)
 * alien granades (needs: granades)
 * headshot (depends on class)
