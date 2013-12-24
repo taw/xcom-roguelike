@@ -1,3 +1,8 @@
+Make these work:
+* executioner
+* laser weapons
+* sprinter
+
 * make fire trail for miss look like one
 * aliens should shoot most vulnerable soldier
 * inter-level summary screen
@@ -8,6 +13,8 @@
 * per-action cooldown system (reset on new_level etc.)
 * grenades
 * make rocket work
+
+* stat upgrades should be class-specific
 
 * destructible objects (with explosives only for now)
 
@@ -27,7 +34,6 @@
 * soldiers and aliens in one structure
 * movement trails
 * movement by 1.0 / 1.4, not full Euclidean distance (if it works)
-* level ups (for at least stats)
 * full line of sight test for shooting (maybe ignoring covers)
 * dashing
 * class ability for snipers
@@ -41,10 +47,6 @@
 * Some not completely stupid level generation as well
 
 Ability tree idea - training roulette pool:
-* resilience
-* SCOPE
-* executioner
-* ammo conservation
 * disabling shot
 * grenadier (needs: grenades)
 * alien granades (needs: granades)
@@ -55,10 +57,8 @@ Ability tree idea - training roulette pool:
 * HEAT ammo (needs: robotic soldiers)
 * tactical sense (needs: line of sight)
 * aggression (needs: line of sight)
-* low profile (needs: low cover)
 * gunslinger (needs: pistols, exclusive with arc thrower)
 * arc thrower (needs: pistol, goes into pistol slot, exclusive with gunslinger)
 * rocketeer (needs: fire rocket, depends on class)
 * will to survive (depends on correct flanking system)
-* laser weapons
 * light plasma weapons (requires laser weapons)

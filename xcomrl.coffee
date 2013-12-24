@@ -42,7 +42,11 @@ class Unit
   @property 'gun',
     get: -> GunTypes[@gun_type]
   @property 'ammomax',
-    get: -> @gun.ammomax
+    get: ->
+      if 'Ammo conservation' in @abilities
+        @gun.ammomax * 2
+      else
+        @gun.ammomax
   action_reload: () ->
     @ammo = @ammomax
     @actions = 0
@@ -68,13 +72,40 @@ class Unit
       0
   in_fire_range: (target) ->
     dist2(@x - target.x, @y - target.y) <= @gun.range
+  has_ability: (ability) ->
+    ability in @abilities
 
 class Soldier extends Unit
   constructor: (attrs) ->
     super
     @xp ||= 0
+    @level ||= 1
+    @promotion_options ||= []
+  @property 'rank',
+    get: ->
+      ['Rookie', 'Squaddie', 'Corporal', 'Sergeant', 'Lieutenant', 'Major', 'Colonel'][@level] || "General (#{@level-6} stars)"
+  @property 'xp_for_next_promotion',
+    get: ->
+      @level * 30
+  @property 'ability_pool',
+    get: ->
+      _.difference(['Resilience', 'Low profile', 'SCOPE', 'Ammo conservation', 'Executioner', 'Laser weapons', 'Sprinter'], @abilities)
+  setup_promotion: ->
+    @promotion_options = _.sample(@ability_pool, 2)
+  promotion: (ability) ->
+    @promotion_options = []
+    @level++
+    if @level % 2 == 0
+      @hpmax++
+      @hp++
+    @aim += 5
+    @abilities.push ability
+    if @xp >= @xp_for_next_promotion
+      @setup_promotion()
   register_kill: (victim) ->
     @xp += 30
+    if @xp >= @xp_for_next_promotion
+      @setup_promotion()
 
 $ ->
   ## Static global data
@@ -91,7 +122,8 @@ $ ->
     wall: {icon: "W",bg: "#afa",fg: "#080"}
     door: {icon: "D",bg: "#aaf",fg: "#008"}
     "abducted cow": {icon: "C",bg: "#afa",fg: "#080"}
-    rock: {icon: "r",bg: "#afa",fg: "#8f8"}
+    "abducted goat": {icon: "g",bg: "#afa",fg: "#0f0"}
+    rock: {icon: "r",bg: "#afa",fg: "#080"}
     movement_highlight: {bg: "#ccf"}
     dash_movement_highlight: {bg: "#eef"}
     dead: {icon: "X",bg: "#000",fg: "#800"}
@@ -191,6 +223,8 @@ $ ->
       when 12
         objects.push x: x,    y: y,    style: "abducted cow", cover: 40
       when 13
+        objects.push x: x,    y: y,    style: "abducted goat", cover: 20
+      when 14, 15
         objects.push x: x,    y: y,    style: "rock", cover: 40
 
   generate_initial_squad = ->
@@ -309,7 +343,7 @@ $ ->
 
   display_soldier_info = (soldier) ->
     replace_content_if_differs $("#soldier_info"), (updated) ->
-      updated.append "<div>Squaddie #{soldier.name}</div>"
+      updated.append "<div>#{soldier.rank} #{soldier.name}</div>"
       updated.append "<div>HP: #{soldier.hp}/#{soldier.hpmax}</div>"
       updated.append "<div>Aim: #{soldier.aim}</div>"
       updated.append "<div>Mobility: #{soldier.mobility}</div>"
@@ -425,6 +459,11 @@ $ ->
       timeout: current_time() + 3000
     next_soldier()
 
+  action_promotion = (choice) ->
+    soldier = current_soldier()
+    ability = soldier.promotion_options[choice]
+    soldier.promotion(ability)
+
   highlight_mouseover = ->
     return if mouse_x is null or mouse_y is null
     ctx.lineWidth = 2
@@ -464,6 +503,11 @@ $ ->
     actions = []
     actions.push key: 'e', label: 'End turn'
     if soldier.hp > 0
+      if soldier.promotion_options.length
+        console.log soldier.promotion_options
+        for ability, i in soldier.promotion_options
+          console.log  [i, ability]
+          actions.push key: "#{i+1}", label: "Promotion - #{ability}"
       if soldier.ammo < gun.ammomax
         actions.push key: 'r', label: 'Reload'
       if current_mode == 'fire'
@@ -499,6 +543,9 @@ $ ->
     # Soldier actions
     action_reload() if key is 'r'
     action_overwatch() if key is 'o'
+    action_promotion(0) if key is '1'
+    action_promotion(1) if key is '2'
+    action_promotion(2) if key is '3'
 
   display_available_actions = ->
     replace_content_if_differs $("#actions"), (updated) ->
@@ -535,12 +582,12 @@ $ ->
         when "alien"
           updated.append "<div>Alien #{object.style} (#{object.hp}/#{object.hpmax})</div>"
           if current_soldier().in_fire_range(object)
-            updated.append "<div>In range (hit chance #{hit_chance(current_soldier(), object)}%)</div>"
+            updated.append "<div>In range (hit #{hit_chance(current_soldier(), object)}%, crit #{crit_chance(current_soldier(), object)}%)</div>"
           else
             updated.append "<div>Out of range</div>"
           updated.append "<div>#{cover_status(current_soldier(), object).description}</div>"
         when "object"
-          updated.append "<div>object #{object.style}</div>"
+          updated.append "<div>#{object.style}</div>"
           updated.append "<div>Cover level #{object.cover}</div>"
         when "empty"
           updated.append "<div>Empty</div>"
@@ -552,7 +599,6 @@ $ ->
     false
 
   cover_level = (x, y) ->
-    # TODO: implement low cover too
     object = find_object(x, y)
     if object.type == 'object'
       object.cover
@@ -571,6 +617,7 @@ $ ->
       if shooter.y < target.y then top else 0,
       if shooter.y > target.y then bottom else 0,
     ])
+    cover = 40 if cover == 20 and target.has_ability('Low profile')
     description = if best_cover == 0
       "In the open"
     else if cover == 0
@@ -587,12 +634,19 @@ $ ->
   hit_chance = (shooter, target) ->
     distance = dist2(shooter.x - target.x, shooter.y - target.y)
     chance = shooter.aim - target.defense - shooter.aim_penalty_for_distance(distance) - cover_status(shooter, target).cover
+    chance += 10 if shooter.has_ability('SCOPE')
     if chance > 100
       100
     else if chance < 0
       0
     else
       chance
+
+  crit_chance = (shooter, target) ->
+    chance = shooter.gun.crit_chance
+    return 0 if shooter.has_ability('Resilience')
+    chance += 10 if shooter.has_ability('SCOPE')
+    chance
 
   fire_trail = (shooter, target, msg) ->
     decorations.push
@@ -611,11 +665,10 @@ $ ->
 
   fire_action = (shooter, target) ->
     gun = shooter.gun
-    chance = hit_chance(shooter, target)
     shooter.actions = 0
     shooter.ammo -= 1
-    if Math.random() * 100 < chance
-      if Math.random() * 100 < gun.crit_chance
+    if Math.random() * 100 < hit_chance(shooter, target)
+      if Math.random() * 100 < crit_chance(shooter, target)
         target.take_damage gun.damage
         fire_trail shooter, target, "#{gun.damage}"
       else
