@@ -346,12 +346,12 @@ $ ->
     random_move alien
     if alien.ammo == 0
       alien.action_reload()
-      return
-    for soldier in live_soldiers()
-      if alien.in_fire_range(soldier)
+    else
+      soldiers_in_range = (soldier for soldier in live_soldiers() when alien.in_fire_range(soldier))
+      if soldiers_in_range.length
         fire_action alien, soldier
-        break
-    random_move alien if alien.actions > 0
+      else
+        random_move alien
 
   aliens_turn = ->
     for alien in aliens
@@ -532,6 +532,7 @@ $ ->
             updated.append "<div>In range (hit chance #{hit_chance(current_soldier(), object)}%)</div>"
           else
             updated.append "<div>Out of range</div>"
+          updated.append "<div>#{cover_status(current_soldier(), object).description}</div>"
         when "object"
           updated.append "<div>object #{object.style}</div>"
         when "empty"
@@ -543,11 +544,42 @@ $ ->
       return true if cell.x is x and cell.y is y
     false
 
+  cover_level = (x, y) ->
+    # TODO: implement low cover too
+    object = find_object(x, y)
+    if object.type == 'object'
+      40
+    else
+      0
+
+  cover_status = (shooter, target) ->
+    left    = cover_level(target.x - 1, target.y)
+    right   = cover_level(target.x + 1, target.y)
+    top     = cover_level(target.x, target.y - 1)
+    bottom  = cover_level(target.x, target.y + 1)
+    best_cover = _.max([left,right,top,bottom])
+    cover = _.max([
+      if shooter.x < target.x then left else 0,
+      if shooter.x > target.x then right else 0,
+      if shooter.y < target.y then top else 0,
+      if shooter.y > target.y then bottom else 0,
+    ])
+    description = if best_cover == 0
+      "In the open"
+    else if cover == 0
+      "Flanked"
+    else if cover <= 20
+      "Low cover (#{cover})"
+    else
+      "High cover (#{cover})"
+    {
+      description: description
+      cover: cover
+    }
+
   hit_chance = (shooter, target) ->
     distance = dist2(shooter.x - target.x, shooter.y - target.y)
-    chance = shooter.aim - target.defense - shooter.aim_penalty_for_distance(distance)
-    # -40 if next to an object (TODO: flanking direction)
-    chance -= 40  if find_object(target.x + 1, target.y).type is "object" or find_object(target.x - 1, target.y).type is "object" or find_object(target.x, target.y + 1).type is "object" or find_object(target.x, target.y - 1).type is "object"
+    chance = shooter.aim - target.defense - shooter.aim_penalty_for_distance(distance) - cover_status(shooter, target).cover
     if chance > 100
       100
     else if chance < 0

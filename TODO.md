@@ -1,34 +1,36 @@
 * make fire trail for miss look like one
-
-* share more code between soldiers and aliens
-* Rewriting the code with classes, attribute getters etc. will probably clean up a lot of things
-
 * aliens should shoot most vulnerable soldier
-
 * inter-level summary screen
 * display detailed gun stats (as mouseover popup?)
 * displapy ability description (as mouseover popup?)
+* sidearms
 
 * per-action cooldown system (reset on new_level etc.)
+* grenades
+* make rocket work
+
 * a few more randomly generated objects
+* low cover objects
+* destructible objects (with explosives only for now)
+
 * make run&gun work
 
-* a few more alien types (floaters, heavy floaters) - for now possibly without any special stuff
-* melee aliens (berserkers) - for now without any special stuff
-
 * aliens should take 1 second or so per action (once movement trail are done)
+* aliens preference for cover and for staying close to each other
 
-* low cover objects
-* sidearms
+* Alien class
+* MeleeAlien class
+* RangedAlien class
+* a few more alien types (floaters, heavy floaters) - for now possibly without any special stuff
+* berserkers
+* find_object to return actual object
+* MapObject class
+
 * soldiers and aliens in one structure
-* basic cover/flanking
 * movement trails
 * movement by 1.0 / 1.4, not full Euclidean distance (if it works)
-* grenades
-* aliens preference for cover and for staying close to each other
 * level ups (for at least stats)
 * full line of sight test for shooting (maybe ignoring covers)
-* make rocket work
 * dashing
 * class ability for snipers
 * class ability for supports
@@ -54,8 +56,8 @@ Ability tree idea - training roulette pool:
 * HEAT ammo (needs: robotic soldiers)
 * tactical sense (needs: line of sight)
 * aggression (needs: line of sight)
-* low cover (needs: low cover)
+* low profile (needs: low cover)
 * gunslinger (needs: pistols, exclusive with arc thrower)
-* arc thrower (needs~ pistol, goes into pistol slot, exclusive with gunslinger)
+* arc thrower (needs: pistol, goes into pistol slot, exclusive with gunslinger)
 * rocketeer (needs: fire rocket, depends on class)
 * will to survive (depends on correct flanking system)
