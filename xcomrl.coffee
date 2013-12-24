@@ -13,14 +13,25 @@ Function::property = (prop, desc) ->
 
 ## Guns
 GunTypes =
-  pistol: {damage: 1, crit: 1, crit_chance: 1, range: 10}
-  plasma_pistol: {damage: 3, crit: 4, crit_chance: 10, range: 10}
+  pistol: {damage: 1, crit: 1, crit_chance: 0, range: 10}
+  laser_pistol: {damage: 2, crit: 3, crit_chance: 10, range: 10}
+  plasma_pistol: {damage: 3, crit: 4, crit_chance: 0, range: 10}
+
   shotgun: {damage: 4, crit: 6, crit_chance: 20, range: 10, far_range: 5, ammomax: 4}
+  scatter_laser: {damage: 6, crit: 9, crit_chance: 20, range: 10, far_range: 5, ammomax: 4}
+  alloy_cannon: {damage: 9, crit: 13, crit_chance: 20, range: 10, far_range: 5, ammomax: 4}
+
   rifle: {damage: 3, crit: 4, crit_chance: 10, range: 10, ammomax: 4}
-  light_plasma_rifle: {damage: 5, crit: 7, crit_chance: 10, range: 10, ammomax: 4}
+  laser_rifle: {damage: 5, crit: 7, crit_chance: 10, range: 10, ammomax: 4}
+  light_plasma_rifle: {damage: 5, crit: 7, crit_chance: 10, range: 10, ammomax: 4, aimbonus: 10}
   plasma_rifle: {damage: 7, crit: 10, crit_chance: 10, range: 10, ammomax: 4}
+
   sniper_rifle: {damage: 4, crit: 6, crit_chance: 25, range: 20, min_range: 5, two_actions: true, ammomax: 4}
+  laser_sniper_rifle: {damage: 6, crit: 9, crit_chance: 30, range: 20, min_range: 5, two_actions: true, ammomax: 4}
+  plasma_sniper_rifle: {damage: 9, crit: 13, crit_chance: 35, range: 20, min_range: 5, two_actions: true, ammomax: 4}
+
   lmg: {damage: 4, crit: 6, crit_chance: 0, range: 10, ammomax: 3}
+  heavy_laser: {damage: 6, crit: 9, crit_chance: 0, range: 10, ammomax: 3}
   heavy_plasma: {damage: 9, crit: 13, crit_chance: 0, range: 10, ammomax: 3}
 
 ## Unit
@@ -92,6 +103,20 @@ class Soldier extends Unit
       _.difference(['Resilience', 'Low profile', 'SCOPE', 'Ammo conservation', 'Executioner', 'Laser weapons', 'Sprinter'], @abilities)
   setup_promotion: ->
     @promotion_options = _.sample(@ability_pool, 2)
+  gain_ability: (ability) ->
+    @abilities.push ability
+    @mobility += 2 if ability == 'Sprinter'
+    if ability == 'Laser weapons'
+      switch @gun_type
+        when 'shotgun'
+          @gun_type = 'scatter_laser'
+        when 'rifle'
+          @gun_type = 'laser_rifle'
+        when 'sniper_rifle'
+          @gun_type = 'laser_sniper_rifle'
+        when 'lmg'
+          @gun_type = 'heavy_laser'
+      @ammo = @ammomax
   promotion: (ability) ->
     @promotion_options = []
     @level++
@@ -99,7 +124,7 @@ class Soldier extends Unit
       @hpmax++
       @hp++
     @aim += 5
-    @abilities.push ability
+    @gain_ability(ability)
     if @xp >= @xp_for_next_promotion
       @setup_promotion()
   register_kill: (victim) ->
@@ -205,11 +230,11 @@ $ ->
         else
           aliens.push create_muton_elite(x, y)
       when 4, 5
-        objects.push x: x, y: y,     style: "car", cover: 20
-        objects.push x: x, y: y + 1, style: "car", cover: 20
+        objects.push x: x,    y: y,    style: "car", cover: 20
+        objects.push x: x,    y: y+1,  style: "car", cover: 20
       when 6, 7
-        objects.push x: x,     y: y, style: "car", cover: 20
-        objects.push x: x + 1, y: y, style: "car", cover: 20
+        objects.push x: x,    y: y,    style: "car", cover: 20
+        objects.push x: x+1,  y: y,    style: "car", cover: 20
       when 8, 9, 10, 11
         objects.push x: x0,   y: y0,   style: "wall", cover: 40
         objects.push x: x0,   y: y0+1, style: "wall", cover: 40
@@ -504,9 +529,7 @@ $ ->
     actions.push key: 'e', label: 'End turn'
     if soldier.hp > 0
       if soldier.promotion_options.length
-        console.log soldier.promotion_options
         for ability, i in soldier.promotion_options
-          console.log  [i, ability]
           actions.push key: "#{i+1}", label: "Promotion - #{ability}"
       if soldier.ammo < gun.ammomax
         actions.push key: 'r', label: 'Reload'
@@ -599,9 +622,9 @@ $ ->
     false
 
   cover_level = (x, y) ->
-    object = find_object(x, y)
-    if object.type == 'object'
-      object.cover
+    found = find_object(x, y)
+    if found.type == 'object'
+      found.object.cover
     else
       0
 
@@ -633,8 +656,9 @@ $ ->
 
   hit_chance = (shooter, target) ->
     distance = dist2(shooter.x - target.x, shooter.y - target.y)
-    chance = shooter.aim - target.defense - shooter.aim_penalty_for_distance(distance) - cover_status(shooter, target).cover
+    chance = shooter.aim - target.defense - shooter.aim_penalty_for_distance(distance) - cover_status(shooter, target).cover + (shooter.gun.aimbonus || 0)
     chance += 10 if shooter.has_ability('SCOPE')
+    chance += 10 if shooter.has_ability('Executioner') and target.hp*2 < target.hpmax
     if chance > 100
       100
     else if chance < 0
@@ -646,6 +670,7 @@ $ ->
     chance = shooter.gun.crit_chance
     return 0 if shooter.has_ability('Resilience')
     chance += 10 if shooter.has_ability('SCOPE')
+    chance += 50 if cover_status(shooter, target).cover == 0
     chance
 
   fire_trail = (shooter, target, msg) ->

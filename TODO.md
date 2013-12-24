@@ -1,7 +1,7 @@
 Make these work:
-* executioner
-* laser weapons
-* sprinter
+* light plasma weapons (pistols, light rifles, heavy plasma)
+* heavy plasma weapons (sniper rifles, rifles, blaster launcher)
+* better armor types
 
 * make fire trail for miss look like one
 * aliens should shoot most vulnerable soldier
@@ -13,6 +13,9 @@ Make these work:
 * per-action cooldown system (reset on new_level etc.)
 * grenades
 * make rocket work
+
+* cover side-stepping (http://i.imgur.com/eqnBg.gif) - unit test these cases
+* no-cover aliens (floaters / heavy floaters) - they supposedly can't side-step cover
 
 * stat upgrades should be class-specific
 
