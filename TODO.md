@@ -1,9 +1,11 @@
+* split code into multiple files
+* try to disentangle spaghetti code a bit more
+
 Make these work:
 * light plasma weapons (pistols, light rifles, heavy plasma)
 * heavy plasma weapons (sniper rifles, rifles, blaster launcher)
 * better armor types
 
-* try to disentangle spaghetti code a bit more
 * unit tests for cover mechanics (most will fail for now, obviously)
 
 * make fire trail for miss look like one
@@ -25,6 +27,7 @@ Make these work:
 * destructible objects (with explosives only for now)
 
 * make run&gun work
+* @ctx.lineWidth management is a mess
 
 * aliens should take 1 second or so per action (once movement trail are done)
 * aliens preference for cover and for staying close to each other
@@ -52,10 +55,11 @@ Make these work:
 
 Ability tree idea - training roulette pool:
 * disabling shot
+* will to survive
+* snapshot (depends on class) - currently broken version in the code
 * grenadier (needs: grenades)
 * alien granades (needs: granades)
 * headshot (depends on class)
-* snapshot (depends on class)
 * field medic (needs: per-soldier action system)
 * bring em on (needs: squad line of sight)
 * HEAT ammo (needs: robotic soldiers)
@@ -64,5 +68,4 @@ Ability tree idea - training roulette pool:
 * gunslinger (needs: pistols, exclusive with arc thrower)
 * arc thrower (needs: pistol, goes into pistol slot, exclusive with gunslinger)
 * rocketeer (needs: fire rocket, depends on class)
-* will to survive (depends on correct flanking system)
 * light plasma weapons (requires laser weapons)

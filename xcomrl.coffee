@@ -58,6 +58,16 @@ class Unit
         @gun.ammomax * 2
       else
         @gun.ammomax
+  @property 'gun_needs_two_actions',
+    get: -> @gun.two_actions and not @has_ability('Snapshot')
+  @property 'gun_damage',
+    get: -> @gun.damage
+  @property 'gun_crit_damage',
+    get: -> @gun.crit
+  action_move: (x,y) ->
+    @x = x
+    @y = y
+    @actions -= 1
   action_reload: () ->
     @ammo = @ammomax
     @actions = 0
@@ -371,11 +381,32 @@ class Map
       return true if cell.x is x and cell.y is y
     false
 
-
-## Everything below is a very dirty mix of UI, logic, and other stuff
-$ ->
-  ## Static global data
-  styles =
+## Pure UI (display and input) stuff, no logic here
+## one thing this is aware of (and maybe shouldn't be) is map size, currently hardcoded
+## Nothing outside this class should ever do any jQuery or DOM access or such stuff
+class UI
+  constructor: ->
+    @canvas = document.getElementById("main_canvas")
+    @ctx = @canvas.getContext("2d")
+    @ctx.font = "18px Courier"
+    @ctx.lineCap = "round"
+    @mouse_x = null
+    @mouse_y = null
+    @decorations = []
+    $(@canvas).bind "mousemove", (event) =>
+      [@mouse_x, @mouse_y] = @event_xy_to_cell(event)
+      null
+    $(@canvas).bind "mouseout", (event) ->
+      @mouse_x = null
+      @mouse_y = null
+      null
+  event_xy_to_cell: (event) ->
+    rect = @canvas.getBoundingClientRect()
+    [
+      Math.floor((event.clientX - rect.left) / 24),
+      Math.floor((event.clientY - rect.top) / 24),
+    ]
+  styles:
     "soldier 1": {icon: "1",bg: "#000",fg: "#fff"}
     "soldier 2": {icon: "2",bg: "#000",fg: "#fff"}
     "soldier 3": {icon: "3",bg: "#000",fg: "#fff"}
@@ -393,69 +424,48 @@ $ ->
     movement_highlight: {bg: "#ccf"}
     dash_movement_highlight: {bg: "#eef"}
     dead: {icon: "X",bg: "#000",fg: "#800"}
-
-  ## Instance variables
-  canvas = document.getElementById("main_canvas")
-  ctx = canvas.getContext("2d")
-  ctx.font = "18px Courier"
-  ctx.lineCap = "round"
-  map = new Map()
-  current_soldier_idx = null
-  mouse_x = null
-  mouse_y = null
-  current_mode = null
-  level_number = 0
-  decorations = []
-
-  ## Everything else
-
-  clear_canvas = ->
-    ctx.clearRect 0, 0, canvas.width, canvas.height
-
-  draw_cell = (i, j, style) ->
-    ctx.fillStyle = style
-    ctx.fillRect i * 24 + 1, j * 24 + 1, 24 - 2, 24 - 2
-
-  draw_text_sprite = (obj) ->
+  clear_canvas: ->
+    @ctx.clearRect 0, 0, @canvas.width, @canvas.height
+  draw_cell: (i, j, style) ->
+    @ctx.fillStyle = style
+    @ctx.fillRect i*24+1, j*24+1, 24-2, 24-2
+  draw_text_sprite: (obj) ->
     x = obj.x
     y = obj.y
-    style = styles[obj.style]
-    draw_cell x, y, style.bg
+    style = @styles[obj.style]
+    @draw_cell x, y, style.bg
     if style.icon
-      ctx.fillStyle = style.fg
-      xsz = ctx.measureText(style.icon).width
-      ctx.fillText style.icon, x * 24 + 12 - xsz / 2, y * 24 + 12 + 6
-
-  draw_all_bounds = (i, j, style) ->
+      @ctx.fillStyle = style.fg
+      xsz = @ctx.measureText(style.icon).width
+      @ctx.fillText style.icon, x * 24 + 12 - xsz / 2, y * 24 + 12 + 6
+  draw_all_bounds: (i, j, style) ->
     x0 = i * 24
     y0 = j * 24
-    ctx.strokeStyle = style
-    ctx.beginPath()
-    ctx.moveTo x0, y0
-    ctx.lineTo x0 + 24, y0
-    ctx.lineTo x0 + 24, y0 + 24
-    ctx.lineTo x0, y0 + 24
-    ctx.lineTo x0, y0
-    ctx.stroke()
-
-  draw_grid = ->
-    ctx.lineWidth = 1
+    @ctx.strokeStyle = style
+    @ctx.beginPath()
+    @ctx.moveTo x0, y0
+    @ctx.lineTo x0 + 24, y0
+    @ctx.lineTo x0 + 24, y0 + 24
+    @ctx.lineTo x0, y0 + 24
+    @ctx.lineTo x0, y0
+    @ctx.stroke()
+  draw_grid: ->
+    @ctx.lineWidth = 1
     for i in [0..29]
       for j in [0..29]
-        draw_all_bounds i, j, "#ccc"
-
-  draw_objects = ->
-    for soldier in map.soldiers
-      draw_text_sprite soldier
-    for alien in map.aliens
-      draw_text_sprite alien
-    for object in map.objects
-      draw_text_sprite object
-
-  current_soldier = ->
-    map.soldiers[current_soldier_idx]
-
-  replace_content_if_differs = (target, fn) ->
+        @draw_all_bounds i, j, "#ccc"
+  highlight_current_soldier: (x,y) ->
+    @ctx.lineWidth = 3
+    @draw_all_bounds x, y, "#f00"
+  highlight_mouseover: ->
+    return if @mouse_x is null or @mouse_y is null
+    @ctx.lineWidth = 2
+    @draw_all_bounds @mouse_x, @mouse_y, "#00f"
+  highlight_target_in_fire_range: (x,y) ->
+    @ctx.lineWidth = 2
+    @draw_all_bounds x, y, "#00a"
+  replace_content_if_differs: (target_id, fn) ->
+    target = $("##{target_id}")
     source = $("<div></div>")
     fn source
     source_html = source[0].innerHTML
@@ -463,9 +473,53 @@ $ ->
     if source_html != target_html
       target.empty()
       target.append source_html
+  display_decoration: (decoration) ->
+    switch decoration.type
+      when 'fire trail'
+        @ctx.strokeStyle = '#f00'
+        @ctx.beginPath()
+        @ctx.moveTo decoration.x0*24+12, decoration.y0*24+12
+        @ctx.lineTo decoration.x1*24+12, decoration.y1*24+12
+        @ctx.stroke()
+      when 'text'
+        @ctx.fillStyle = '#f00'
+        @ctx.fillText decoration.msg, decoration.x*24+12 , decoration.y*24+12
+  display_decorations: ->
+    time = current_time()
+    @decorations = (d for d in @decorations when time <= d.timeout)
+    @display_decoration(d) for d in @decorations
+  add_fire_trail: (shooter, target, msg) ->
+    @decorations.push
+      type: 'fire trail'
+      x0: shooter.x
+      y0: shooter.y
+      x1: target.x
+      y1: target.y
+      timeout: current_time() + 1500
+    @add_message target.x, target.y, msg
+  add_message: (x,y,msg) ->
+    @decorations.push
+      type: 'text'
+      x: x
+      y: y
+      msg: msg
+      timeout: current_time() + 3000
+
+## Everything below is a very dirty mix of UI, logic, and other stuff
+$ ->
+  ## Instance variables
+  ui = new UI()
+  map = new Map()
+  current_soldier_idx = null
+  current_mode = null
+
+  ## Everything else
+
+  current_soldier = ->
+    map.soldiers[current_soldier_idx]
 
   display_soldier_info = (soldier) ->
-    replace_content_if_differs $("#soldier_info"), (updated) ->
+    ui.replace_content_if_differs "soldier_info", (updated) ->
       updated.append "<div>#{soldier.rank} #{soldier.name}</div>"
       updated.append "<div>HP: #{soldier.hp}/#{soldier.hpmax}</div>"
       updated.append "<div>Aim: #{soldier.aim}</div>"
@@ -483,24 +537,23 @@ $ ->
   highlight_current_soldier = ->
     x = current_soldier().x
     y = current_soldier().y
-    ctx.lineWidth = 3
-    draw_all_bounds x, y, "#f00"
+    ui.highlight_current_soldier x, y
 
+  # TODO: this should go within Alien
   random_move = (alien) ->
     range = map.compute_range(alien.x, alien.y, alien.mobility)
     move = range[random_int(range.length)]
-    alien.x = move.x
-    alien.y = move.y
-    alien.actions -= 1
+    alien.action_move move.x, move.y
 
   any_alien_in_range = ->
     for alien in map.live_aliens
       return true if current_soldier().in_fire_range(alien)
     false
 
+  # TODO: this should go within Alien
   process_alien_actions = (alien) ->
     return if alien.hp is 0
-    random_move alien
+    random_move(alien)
     if alien.ammo == 0
       alien.action_reload()
     else
@@ -534,7 +587,6 @@ $ ->
     null
 
   ## Actions
-
   next_soldier = ->
     i = find_next_soldier_idx()
     if i is null
@@ -544,12 +596,6 @@ $ ->
       current_soldier_idx = i
     current_mode = "move"
 
-  fire_mode = ->
-    current_mode = "fire"
-
-  move_mode = ->
-    current_mode = "move"
-
   end_turn = ->
     aliens_turn()
     start_new_turn()
@@ -557,23 +603,13 @@ $ ->
   action_reload = ->
     soldier = current_soldier()
     soldier.action_reload()
-    decorations.push
-      type: 'text'
-      x: soldier.x
-      y: soldier.y
-      msg: 'Reload'
-      timeout: current_time() + 3000
+    ui.add_message soldier.x, soldier.y, 'Reload'
     next_soldier()
 
   action_overwatch = ->
     soldier = current_soldier()
     soldier.action_overwatch()
-    decorations.push
-      type: 'text'
-      x: soldier.x
-      y: soldier.y
-      msg: 'Overwatch'
-      timeout: current_time() + 3000
+    ui.add_message soldier.x, soldier.y, 'Overwatch'
     next_soldier()
 
   action_promotion = (choice) ->
@@ -581,29 +617,22 @@ $ ->
     ability = soldier.promotion_options[choice]
     soldier.promotion(ability)
 
-  highlight_mouseover = ->
-    return if mouse_x is null or mouse_y is null
-    ctx.lineWidth = 2
-    draw_all_bounds mouse_x, mouse_y, "#00f"
-
   highlight_current_soldier_move_range = ->
     soldier = current_soldier()
     if soldier.actions == 2
       for cell in map.compute_range(soldier.x, soldier.y, 2*soldier.mobility)
-        draw_text_sprite x: cell.x, y: cell.y, style: "dash_movement_highlight"
+        ui.draw_text_sprite x: cell.x, y: cell.y, style: "dash_movement_highlight"
     for cell in map.compute_range(soldier.x, soldier.y, soldier.mobility)
-      draw_text_sprite x: cell.x, y: cell.y, style: "movement_highlight"
+      ui.draw_text_sprite x: cell.x, y: cell.y, style: "movement_highlight"
 
   highlight_current_soldier_fire_range = ->
     for alien in map.live_aliens
       if current_soldier().in_fire_range(alien)
-        ctx.lineWidth = 2
-        draw_all_bounds alien.x, alien.y, "#00a"
+        ui.highlight_target_in_fire_range(alien.x, alien.y)
 
+  # TODO: maybe some of this should go within Soldier or Map ???
   potential_actions = ->
     soldier = current_soldier()
-    gun = soldier.gun
-
     actions = []
     actions.push key: 'e', label: 'End turn'
     if soldier.hp > 0
@@ -611,12 +640,12 @@ $ ->
         for ability, i in soldier.promotion_options
           actions.push key: "#{i+1}", label: "Promotion - #{ability}"
       if soldier.actions > 0
-        if soldier.ammo < gun.ammomax
+        if soldier.ammo < soldier.ammomax
           actions.push key: 'r', label: 'Reload'
         if current_mode == 'fire'
           actions.push key: 'm', label: 'Move'
         if soldier.ammo > 0
-          if !gun.two_actions or soldier.actions == 2
+          if !soldier.gun_needs_two_actions or soldier.actions == 2
             actions.push key: 'o', label: 'Overwatch'
             if current_mode == 'move'
               if any_alien_in_range()
@@ -640,8 +669,8 @@ $ ->
     return unless action_is_valid(key)
     # Interface/global action
     end_turn() if key is 'e'
-    fire_mode() if key is 'f'
-    move_mode() if key is 'm'
+    current_mode = 'fire' if key is 'f'
+    current_mode = 'move' if key is 'm'
     next_soldier() if key is 'n'
     # Soldier actions
     action_reload() if key is 'r'
@@ -651,7 +680,7 @@ $ ->
     action_promotion(2) if key is '3'
 
   display_available_actions = ->
-    replace_content_if_differs $("#actions"), (updated) ->
+    ui.replace_content_if_differs "actions", (updated) ->
       for action in potential_actions()
         if action.inactive
           updated.append("<div class='inactive_action'>#{action.key} #{action.label} (#{action.inactive})</div>")
@@ -659,14 +688,14 @@ $ ->
           updated.append("<div class='action' data-key='#{action.key}'>#{action.key} #{action.label}</div>")
 
   display_mouseover_object = ->
-    replace_content_if_differs $("#mouseover_object"), (updated) ->
-      return if mouse_x is null or mouse_y is null
-      updated.append "<div class='coordinates'>x=" + mouse_x + " y=" + mouse_y + "</div>"
-      found = map.find_object(mouse_x, mouse_y)
+    ui.replace_content_if_differs "mouseover_object", (updated) ->
+      return if ui.mouse_x is null or ui.mouse_y is null
+      updated.append "<div class='coordinates'>x=" + ui.mouse_x + " y=" + ui.mouse_y + "</div>"
+      found = map.find_object(ui.mouse_x, ui.mouse_y)
       object = found.object
       switch found.type
         when "soldier"
-          updated.append "<div>Squaddie #{object.name} (#{object.hp}/#{object.hpmax})</div>"
+          updated.append "<div>#{object.rank} #{object.name} (#{object.hp}/#{object.hpmax})</div>"
         when "alien"
           updated.append "<div>Alien #{object.style} (#{object.hp}/#{object.hpmax})</div>"
           if current_soldier().in_fire_range(object)
@@ -680,49 +709,31 @@ $ ->
         when "empty"
           updated.append "<div>Empty</div>"
 
-  fire_trail = (shooter, target, msg) ->
-    decorations.push
-      type: 'fire trail'
-      x0: shooter.x
-      y0: shooter.y
-      x1: target.x
-      y1: target.y
-      timeout: current_time() + 1500
-    decorations.push
-      type: 'text'
-      x: target.x
-      y: target.y
-      msg: msg
-      timeout: current_time() + 3000
-
   fire_action = (shooter, target) ->
-    gun = shooter.gun
     shooter.actions = 0
     shooter.ammo -= 1
     if Math.random() * 100 < map.hit_chance(shooter, target)
       if Math.random() * 100 < map.crit_chance(shooter, target)
-        target.take_damage gun.damage
-        fire_trail shooter, target, "#{gun.damage}"
+        target.take_damage shooter.gun_damage
+        ui.add_fire_trail shooter, target, "#{shooter.gun_damage}"
       else
-        target.take_damage gun.crit
-        fire_trail shooter, target, "#{gun.crit}"
+        target.take_damage shooter.gun_crit_damage
+        ui.add_fire_trail shooter, target, "#{shooter.gun_crit_damage}"
       if target.hp is 0
         shooter.register_kill target
     else
-      fire_trail shooter, target, "X"
+      ui.add_fire_trail shooter, target, "X"
 
   clicked_on = (x, y) ->
+    return if map.all_soldiers_dead
     soldier = current_soldier()
     object_clicked = map.find_object(x, y)
-
     if object_clicked.type == "soldier"
       current_soldier_idx = map.soldiers.indexOf(object_clicked.object)
       return
     if current_mode is "move" and soldier.actions > 0
       if map.in_move_range(soldier, x, y)
-        soldier.x = x
-        soldier.y = y
-        soldier.actions -= 1
+        soldier.action_move x, y
     if current_mode is "fire" and soldier.actions > 0
       return unless soldier.in_fire_range(x: x, y: y)
       object_clicked = map.find_object(x, y)
@@ -731,74 +742,44 @@ $ ->
     next_soldier() if soldier.actions is 0
 
   display_info = ->
-    replace_content_if_differs $("#map_info"), (updated) ->
+    ui.replace_content_if_differs "map_info", (updated) ->
       updated.append("Level #{map.level_number}")
     display_soldier_info current_soldier()
     display_mouseover_object()
     display_available_actions()
-    replace_content_if_differs $("#game_status"), (updated) ->
+    ui.replace_content_if_differs "game_status", (updated) ->
       if map.all_soldiers_dead
         updated.append("You lost!")
       else if map.all_aliens_dead
         map.generate_level()
         start_new_turn()
 
-  display_decorations = ->
-    time = current_time()
-    decorations = _.filter decorations, (decoration) ->
-      time <= decoration.timeout
-    for decoration in decorations
-      switch decoration.type
-        when 'fire trail'
-          ctx.strokeStyle = '#f00'
-          ctx.beginPath()
-          ctx.moveTo decoration.x0*24+12, decoration.y0*24+12
-          ctx.lineTo decoration.x1*24+12, decoration.y1*24+12
-          ctx.stroke()
-        when 'text'
-          ctx.fillStyle = '#f00'
-          ctx.fillText decoration.msg, decoration.x*24+12 , decoration.y*24+12
-
   draw_map = ->
-    clear_canvas()
-    draw_grid()
-    draw_objects()
-    highlight_mouseover()
+    ui.clear_canvas()
+    ui.draw_grid()
+    ui.draw_text_sprite(drawable) for drawable in map.soldiers
+    ui.draw_text_sprite(drawable) for drawable in map.aliens
+    ui.draw_text_sprite(drawable) for drawable in map.objects
+    ui.highlight_mouseover()
     if current_soldier()
       highlight_current_soldier()
       highlight_current_soldier_move_range() if current_mode is "move"
       highlight_current_soldier_fire_range() if current_mode is "fire"
     display_info()
-    display_decorations()
+    ui.display_decorations()
 
-  $(canvas).bind "mousemove", (event) ->
-    rect = canvas.getBoundingClientRect()
-    mouse_x = Math.floor((event.clientX - rect.left) / 24)
-    mouse_y = Math.floor((event.clientY - rect.top) / 24)
-    null
-
-  $(canvas).bind "click", (event) ->
-    return if map.all_soldiers_dead
-    rect = canvas.getBoundingClientRect()
-    x = Math.floor((event.clientX - rect.left) / 24)
-    y = Math.floor((event.clientY - rect.top) / 24)
+  # TODO: Some of this code should go within UI
+  $(ui.canvas).bind "click", (event) ->
+    [x, y] = ui.event_xy_to_cell(event)
     clicked_on x, y
     null
-
-  $(canvas).bind "mouseout", (event) ->
-    mouse_x = null
-    mouse_y = null
-    null
-
   $(document).bind "keypress", (event) ->
     return if map.all_soldiers_dead
     perform_action String.fromCharCode(event.which).toLowerCase()
     null
-
   $("#actions").on "click", ".action", (event) ->
     perform_action $(event.target).data("key")
     null
-
   main_loop = ->
     draw_map()
     null
