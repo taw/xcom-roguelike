@@ -1,3 +1,5 @@
+## Specs based mostly on http://i.imgur.com/eqnBg.gif
+
 setup_map = (lines) ->
   map = new Map()
   map.unit_index = {}
@@ -16,17 +18,38 @@ setup_map = (lines) ->
           null
   map
 
-cover_status = (map, shooter_idx, target_idx, expected) ->
-  shooter = map.unit_index["#{shooter_idx}"]
-  target = map.unit_index["#{target_idx}"]
-  actual = map.cover_status(shooter, target).description
-  ok(actual == expected, "Expected #{shooter_idx} to #{target_idx} to be: #{expected}, was #{actual}")
+test_covers = (name, attrs) ->
+  test name, ->
+    translation =
+      'In the open': 'in_the_open'
+      'Flanked': 'flanked'
+      'Low cover (20)': 'half_cover'
+      'High cover (40)': 'full_cover'
+    map = setup_map(attrs['map'])
+    for target_idx, val of attrs
+      continue if target_idx == 'map'
+      target = map.unit_index[target_idx]
+      for expected, shooter_idx of val
+        shooter = map.unit_index[shooter_idx]
+        actual = translation[map.cover_status(shooter, target).description]
+        ok(actual==expected, "Expected #{target_idx} to be #{expected} by #{shooter_idx}, was #{actual}")
 
-test 'Cover system', ->
-  map = setup_map [
+test_covers 'Basic cover situation 1',
+  map: [
+    "     2"
+    "1    "
+  ]
+  1: {in_the_open: 2}
+  2: {in_the_open: 1}
+
+test_covers 'Basic cover situation 2',
+  map: [
     "     .2"
     ".1   . "
     "..   . "
+    "3.   .4"
   ]
-  cover_status map, 2, 1, 'Flanked'
-  cover_status map, 1, 2, 'Low cover (20)'
+  1: {flanked: 2}
+  2: {half_cover: 1}
+  3: {half_cover: 4}
+  4: {half_cover: 3}
