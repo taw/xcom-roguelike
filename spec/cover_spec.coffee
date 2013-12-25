@@ -119,7 +119,7 @@ test_covers 'Side stepping',
   2:
     1: 'flanked'
   3:
-    1: 'flanked'      # FIXME: Known bug due to lack of sidestepping implementation
+    1: 'flanked'
   4:
     1: 'half_cover'
 

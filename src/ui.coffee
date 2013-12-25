@@ -1,6 +1,9 @@
 ## Pure UI (display and input) stuff, no logic here
 ## one thing this is aware of (and maybe shouldn't be) is map size, currently hardcoded
 ## Nothing outside this class should ever do any jQuery or DOM access or such stuff
+current_time = () ->
+  (new Date()).getTime()
+
 class UI
   constructor: ->
     @canvas = document.getElementById("main_canvas")

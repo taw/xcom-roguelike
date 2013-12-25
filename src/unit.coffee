@@ -31,14 +31,21 @@ class Unit
   start_new_level: () ->
     @hp = @hpmax
     @ammo = @ammomax
+    @cooldown = {}
   start_new_turn: () ->
     if @hp > 0
       @actions = 2
     else
       @actions = 0
     @overwatch = false
+    @hunker_down = false
+    for key of @cooldown
+      if @cooldown[key] >= 0
+        @cooldown[key] -= 1
   @property 'gun',
     get: -> GunTypes[@gun_type]
+  @property 'sidearm',
+    get: -> GunTypes[@sidearm_type]
   @property 'ammomax',
     get: ->
       if 'Ammo conservation' in @abilities
@@ -51,18 +58,37 @@ class Unit
     get: -> @gun.damage
   @property 'gun_crit_damage',
     get: -> @gun.crit
+  @property 'sidearm_damage',
+    get: -> @sidearm.damage
+  @property 'sidearm_crit_damage',
+    get: -> @sidearm.crit
   @property 'alive',
     get: -> @hp > 0
   @property 'must_reload',
     get: -> @ammo == 0
   @property 'can_reload',
     get: -> @ammo < @ammomax
+  @property 'can_run_and_gun',
+    get: -> @has_ability('Run and gun') and not @has_cooldown('Run and gun')
+  @property 'can_fire_pistol',
+    get: -> !!@sidearm
+  @property 'can_throw_grenade',
+    get: -> not @has_cooldown('grenade')
+  @property 'can_throw_smoke_grenade',
+    get: -> @has_ability('Smoke grenade') and not @has_cooldown('Smoke grenade')
+  @property 'can_fire_rocket',
+    get: -> @has_ability('Fire rocket') and not @has_cooldown('Fire rocket')
+  has_cooldown: (ability) ->
+    (@cooldown[ability] || 0) > 0
   action_move: (x,y) ->
     @x = x
     @y = y
     @actions -= 1
   action_reload: () ->
     @ammo = @ammomax
+    @actions = 0
+  action_hunker_down: () ->
+    @hunker_down = true
     @actions = 0
   action_overwatch: () ->
     @overwatch = true
@@ -75,6 +101,7 @@ class Unit
       @style = "dead"
       @actions = 0
       @overwatch = false
+      @hunker_down = false
   aim_penalty_for_distance: (distance) ->
     # Aim penalty of up to -20 if too far
     if @gun.far_range and distance >= @gun.far_range
@@ -86,6 +113,8 @@ class Unit
       0
   in_fire_range: (target) ->
     dist2(@x - target.x, @y - target.y) <= @gun.range
+  in_sidearm_fire_range: (target) ->
+    dist2(@x - target.x, @y - target.y) <= @sidearm.range
   has_ability: (ability) ->
     ability in @abilities
 
@@ -144,6 +173,7 @@ class Soldier extends Unit
     @xp ||= 0
     @level ||= 1
     @promotion_options ||= []
+    @sidearm_type ||= null
   @property 'rank',
     get: ->
       ['Rookie', 'Squaddie', 'Corporal', 'Sergeant', 'Lieutenant', 'Major', 'Colonel'][@level] || "General (#{@level-6} stars)"
@@ -152,12 +182,24 @@ class Soldier extends Unit
       @level * 30
   @property 'ability_pool',
     get: ->
-      _.difference(['Resilience', 'Low profile', 'SCOPE', 'Ammo conservation', 'Executioner', 'Laser weapons', 'Sprinter'], @abilities)
+      pool = ['Resilience', 'Low profile', 'SCOPE', 'Ammo conservation', 'Executioner', 'Laser weapons', 'Sprinter', 'Carapace armor', 'Chitin plating']
+      pool.push 'Plasma weapons' if @has_ability('Laser weapons')
+      pool.push 'Titan armor' if @has_ability('Carapace armor')
+      _.difference(pool, @abilities)
   setup_promotion: ->
     @promotion_options = _.sample(@ability_pool, 2)
   gain_ability: (ability) ->
     @abilities.push ability
     @mobility += 2 if ability == 'Sprinter'
+    if ability == 'Carapace armor'
+      @hpmax += 3
+      @hp += 3
+    if ability == 'Titan armor'
+      @hpmax += 6
+      @hp += 6
+    if ability == 'Chitin plating'
+      @hpmax += 4
+      @hp += 4
     if ability == 'Laser weapons'
       switch @gun_type
         when 'shotgun'
@@ -168,7 +210,23 @@ class Soldier extends Unit
           @gun_type = 'laser_sniper_rifle'
         when 'lmg'
           @gun_type = 'heavy_laser'
+      if @sidearm == 'pistol'
+        @sidearm = 'laser_pistol'
       @ammo = @ammomax
+    if ability == 'Plasma weapons'
+      switch @gun_type
+        when 'scatter_shotgun'
+          @gun_type = 'alloy_cannon'
+        when 'laser_rifle'
+          @gun_type = 'plasma_rifle'
+        when 'sniper_rifle'
+          @gun_type = 'plasma_sniper_rifle'
+        when 'lmg'
+          @gun_type = 'heavy_plasma'
+      if @sidearm == 'laser_pistol'
+        @sidearm = 'plasma_pistol'
+      @ammo = @ammomax
+
   promotion: (ability) ->
     @promotion_options = []
     @level++

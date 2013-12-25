@@ -1,3 +1,8 @@
+clamp_probability = (chance) ->
+  return 0 if chance < 0
+  return 100 if chance > 100
+  chance
+
 ## Map
 class Map
   constructor: ->
@@ -50,6 +55,7 @@ class Map
         aim: 70
         mobility: 5
         gun_type: 'shotgun'
+        sidearm_type: 'pistol'
         abilities: ['Run and gun']
     )
     @soldiers.push(
@@ -69,6 +75,7 @@ class Map
         hpmax: 6
         aim: 75
         mobility: 5
+        sidearm_type: 'pistol'
         gun_type: 'sniper_rifle'
     )
     @soldiers.push(
@@ -79,6 +86,8 @@ class Map
         aim: 70
         mobility: 5
         gun_type: 'rifle'
+        sidearm_type: 'pistol'
+        abilities: ['Smoke grenade']
     )
   generate_level: ->
     @level_number++
@@ -161,21 +170,16 @@ class Map
     true
   sidestep_spots: (unit) ->
     spots = []
-    x = unit.x
-    y = unit.y
-    left    = @find_object(x-1, y)
-    right   = @find_object(x+1, y)
-    top     = @find_object(x,   y-1)
-    bottom  = @find_object(x,   y+1)
-    # left_high_cover   = true # (left.type   == 'object' and left.object.cover   == 40)
-    # right_high_cover  = true # (right.type  == 'object' and right.object.cover  == 40)
-    # top_high_cover    = true # (top.type    == 'object' and top.object.cover    == 40)
-    # bottom_high_cover = true # (bottom.type == 'object' and bottom.object.cover == 40)
+    {x:x, y:y} = unit
+    left   = @find_object(x-1, y)
+    right  = @find_object(x+1, y)
+    top    = @find_object(x,   y-1)
+    bottom = @find_object(x,   y+1)
     spots.push(x: x, y: y)
-    spots.push(x: x-1, y: y) if left.type   == 'empty' # and (top_high_cover or bottom_high_cover)
-    spots.push(x: x+1, y: y) if right.type  == 'empty' # and (top_high_cover or bottom_high_cover)
-    spots.push(x: x, y: y-1) if top.type    == 'empty' # and (left_high_cover or right_high_cover)
-    spots.push(x: x, y: y+1) if bottom.type == 'empty' # and (left_high_cover or right_high_cover)
+    spots.push(x: x-1, y: y) if left.type   == 'empty'
+    spots.push(x: x+1, y: y) if right.type  == 'empty'
+    spots.push(x: x, y: y-1) if top.type    == 'empty'
+    spots.push(x: x, y: y+1) if bottom.type == 'empty'
     spots
   best_cover: (unit) ->
     _.max([
@@ -204,6 +208,8 @@ class Map
     best_cover = @best_cover(target)
     cover = _.min(possible_shots)
     cover = 40 if cover == 20 and target.has_ability('Low profile')
+    effective_cover = cover
+    effective_cover *= 2 if target.hunker_down
     description = if cover == 1000
       "Invisible"
     else if best_cover == 0
@@ -211,15 +217,19 @@ class Map
     else if cover == 0
       "Flanked"
     else if cover <= 20
-      "Low cover (#{cover})"
+      "Low cover (#{effective_cover})"
     else
-      "High cover (#{cover})"
+      "High cover (#{effective_cover})"
     {
       description: description
-      cover: cover
+      cover: effective_cover
     }
   can_shoot_at: (shooter, target) ->
     return false unless shooter.in_fire_range(target)
+    return false unless @is_visible(shooter, target)
+    true
+  can_shoot_sidearm_at: (shooter, target) ->
+    return false unless shooter.in_sidearm_fire_range(target)
     return false unless @is_visible(shooter, target)
     true
   # TODO: Doing this function properly is actually fairly nontrivial, this is very dirty approximation
@@ -239,18 +249,23 @@ class Map
     chance = shooter.aim - target.defense - shooter.aim_penalty_for_distance(distance) - @cover_status(shooter, target).cover + (shooter.gun.aimbonus || 0)
     chance += 10 if shooter.has_ability('SCOPE')
     chance += 10 if shooter.has_ability('Executioner') and target.hp*2 < target.hpmax
-    if chance > 100
-      100
-    else if chance < 0
-      0
-    else
-      chance
+    clamp_probability(chance)
+  sidearm_hit_chance: (shooter, target) ->
+    distance = dist2(shooter.x - target.x, shooter.y - target.y)
+    chance = shooter.aim - target.defense - @cover_status(shooter, target).cover
+    chance += 10 if shooter.has_ability('Executioner') and target.hp*2 < target.hpmax
+    clamp_probability(chance)
   crit_chance: (shooter, target) ->
     chance = shooter.gun.crit_chance
     return 0 if shooter.has_ability('Resilience')
     chance += 10 if shooter.has_ability('SCOPE')
     chance += 50 if @cover_status(shooter, target).cover == 0
-    chance
+    clamp_probability(chance)
+  sidearm_crit_chance: (shooter, target) ->
+    chance = shooter.sidearm.crit_chance
+    return 0 if shooter.has_ability('Resilience')
+    chance += 50 if @cover_status(shooter, target).cover == 0
+    clamp_probability(chance)
   in_move_range: (unit, x, y) ->
     for cell in @compute_range(unit.x, unit.y, unit.mobility)
       return true if cell.x is x and cell.y is y

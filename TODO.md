@@ -1,49 +1,37 @@
+* make run&gun work
+* grenades
+* make rockets work
+* class ability for supports
+
+* display ability cooldown
+* friendly fire warning (or not lol)
 * soldier perks test suite
 * try to disentangle spaghetti code a bit more
-
-Make these work:
-* light plasma weapons (pistols, light rifles, heavy plasma)
-* heavy plasma weapons (sniper rifles, rifles, blaster launcher)
-* better armor types
-
-* unit tests for cover mechanics (most will fail for now, obviously)
-
-* make fire trail for miss look like one
+* make fire trail for miss look like misses
+* make fire trail aware of side-stepping
 * aliens should shoot most vulnerable soldier
 * inter-level summary screen
 * display detailed gun stats (as mouseover popup?)
-* displapy ability description (as mouseover popup?)
-* sidearms
-
+* display ability description (as mouseover popup?)
+* chitin plating should provide melee protection
 * per-action cooldown system (reset on new_level etc.)
-* grenades
-* make rocket work
-
 * no-cover aliens (floaters / heavy floaters) - they supposedly can't side-step cover
-
 * stat upgrades should be class-specific
-
 * destructible objects (with explosives only for now)
-
-* make run&gun work
 * @ctx.lineWidth management is a mess
-
 * aliens should take 1 second or so per action (once movement trail are done)
 * aliens preference for cover and for staying close to each other
-
 * MeleeAlien, RangedAlien, FlyingAlien etc. classes ???
 * a few more alien types (floaters, heavy floaters) - for now possibly without any special stuff
 * berserkers
 * find_object to return actual object
 * MapObject class
-
 * soldiers and aliens in one structure
 * movement trails
 * movement by 1.0 / 1.4, not full Euclidean distance (if it works)
 * full line of sight test for shooting (maybe ignoring covers)
 * dashing
 * class ability for snipers
-* class ability for supports
 * maybe free aim (once there are destructible covers)
 * make doors actually work
 
@@ -67,4 +55,5 @@ Ability tree idea - training roulette pool:
 * gunslinger (needs: pistols, exclusive with arc thrower)
 * arc thrower (needs: pistol, goes into pistol slot, exclusive with gunslinger)
 * rocketeer (needs: fire rocket, depends on class)
-* light plasma weapons (requires laser weapons)
+
+* check for more ideas later (gene mods, MECs, other abilities, psi)

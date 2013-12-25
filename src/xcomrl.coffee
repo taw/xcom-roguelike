@@ -5,6 +5,7 @@ $ ->
   ui = new UI()
   map = new Map()
   current_soldier_idx = null
+  # Modes are: move, fire, pistol, grenade, smoke_grenade, rocket
   current_mode = null
 
   ## Everything else
@@ -24,6 +25,8 @@ $ ->
         updated.append "<div>On overwatch</div>"
       updated.append "<div><b>Equipment</b></div>"
       updated.append "<div>#{soldier.gun_type} (#{soldier.ammo}/#{soldier.ammomax})</div>"
+      if soldier.sidearm_type
+        updated.append "<div>#{soldier.sidearm_type}</div>"
       updated.append "<div><b>Abilities</b></div>"
       for ability in soldier.abilities
         updated.append "<div>#{ability}</div>"
@@ -41,6 +44,11 @@ $ ->
   any_alien_in_range = ->
     for alien in map.live_aliens
       return true if map.can_shoot_at(current_soldier(), alien)
+    false
+
+  any_alien_in_sidearm_range = ->
+    for alien in map.live_aliens
+      return true if map.can_shoot_sidearm_at(current_soldier(), alien)
     false
 
   # TODO: this should go within Alien
@@ -122,6 +130,11 @@ $ ->
       if map.can_shoot_at(current_soldier(), alien)
         ui.highlight_target_in_fire_range(alien.x, alien.y)
 
+  highlight_current_soldier_sidearm_fire_range = ->
+    for alien in map.live_aliens
+      if map.can_shoot_sidearm_at(current_soldier(), alien)
+        ui.highlight_target_in_fire_range(alien.x, alien.y)
+
   # TODO: maybe some of this should go within Soldier or Map ???
   potential_actions = ->
     soldier = current_soldier()
@@ -134,12 +147,25 @@ $ ->
       if soldier.actions > 0
         if soldier.can_reload
           actions.push key: 'r', label: 'Reload'
-        if current_mode == 'fire'
+        if map.best_cover(soldier) > 0
+          actions.push key: 'h', label: 'Hunker down'
+        if soldier.can_throw_rocket and current_mode != 'rocket'
+          actions.push key: 'x', label: 'Throw smoke grenade'
+        if soldier.can_throw_smoke_grenade and current_mode != 'smoke_grenade'
+          actions.push key: 's', label: 'Throw smoke grenade'
+        if soldier.can_throw_grenade and current_mode != 'grenade'
+          actions.push key: 'g', label: 'Throw grenade'
+        if soldier.can_fire_pistol and current_mode != 'pistol'
+          if any_alien_in_sidearm_range()
+            actions.push key: 'p', label: 'Fire pistol'
+          else
+            actions.push key: 'p', label: 'Fire pistol', inactive: 'no targets in range'
+        if current_mode != 'move'
           actions.push key: 'm', label: 'Move'
         if !soldier.must_reload
           if soldier.actions == 2 or not soldier.gun_needs_two_actions
             actions.push key: 'o', label: 'Overwatch'
-            if current_mode == 'move'
+            if current_mode != 'fire'
               if any_alien_in_range()
                 actions.push key: 'f', label: 'Fire'
               else
@@ -163,10 +189,15 @@ $ ->
     end_turn() if key is 'e'
     current_mode = 'fire' if key is 'f'
     current_mode = 'move' if key is 'm'
+    current_mode = 'pistol' if key is 'p'
+    current_mode = 'grenade' if key is 'g'
+    current_mode = 'smoke_grenade' if key is 's'
+    current_mode = 'rocket' if key is 'r'
     next_soldier() if key is 'n'
     # Soldier actions
     action_reload() if key is 'r'
     action_overwatch() if key is 'o'
+    action_hunker_down() if key is 'h'
     action_promotion(0) if key is '1'
     action_promotion(1) if key is '2'
     action_promotion(2) if key is '3'
@@ -190,8 +221,10 @@ $ ->
           updated.append "<div>#{object.rank} #{object.name} (#{object.hp}/#{object.hpmax})</div>"
         when "alien"
           updated.append "<div>Alien #{object.style} (#{object.hp}/#{object.hpmax})</div>"
-          if map.can_shoot_at(current_soldier(), object)
+          if map.can_shoot_at(current_soldier(), object) and current_mode != 'pistol'
             updated.append "<div>In range (hit #{map.hit_chance(current_soldier(), object)}%, crit #{map.crit_chance(current_soldier(), object)}%)</div>"
+          else if map.can_shoot_sidearm_at(current_soldier(), object) and current_mode == 'pistol'
+            updated.append "<div>In range (hit #{map.sidearm_hit_chance(current_soldier(), object)}%, crit #{map.sidearm_crit_chance(current_soldier(), object)}%)</div>"
           else
             updated.append "<div>Out of range</div>"
           updated.append "<div>#{map.cover_status(current_soldier(), object).description}</div>"
@@ -216,12 +249,27 @@ $ ->
     else
       ui.add_fire_trail shooter, target, "X"
 
+  sidearm_fire_action = (shooter, target) ->
+    shooter.actions = 0
+    if Math.random() * 100 < map.sidearm_hit_chance(shooter, target)
+      if Math.random() * 100 < map.sidearm_crit_chance(shooter, target)
+        target.take_damage shooter.sidearm_damage
+        ui.add_fire_trail shooter, target, "#{shooter.sidearm_damage}"
+      else
+        target.take_damage shooter.sidearm_crit_damage
+        ui.add_fire_trail shooter, target, "#{shooter.sidearm_crit_damage}"
+      if target.hp is 0
+        shooter.register_kill target
+    else
+      ui.add_fire_trail shooter, target, "X"
+
   clicked_on = (x, y) ->
     return if map.all_soldiers_dead
     soldier = current_soldier()
     object_clicked = map.find_object(x, y)
     if object_clicked.type == "soldier"
       current_soldier_idx = map.soldiers.indexOf(object_clicked.object)
+      current_mode = 'move'
       return
     if current_mode is "move" and soldier.actions > 0
       if map.in_move_range(soldier, x, y)
@@ -231,6 +279,11 @@ $ ->
       return unless object_clicked.type == "alien"
       return unless map.can_shoot_at(soldier, object_clicked.object)
       fire_action soldier, object_clicked.object
+    if current_mode is "pistol" and soldier.actions > 0
+      object_clicked = map.find_object(x, y)
+      return unless object_clicked.type == "alien"
+      return unless map.can_shoot_sidearm_at(soldier, object_clicked.object)
+      sidearm_fire_action soldier, object_clicked.object
     next_soldier() if soldier.actions is 0
 
   display_info = ->
@@ -257,6 +310,7 @@ $ ->
       highlight_current_soldier()
       highlight_current_soldier_move_range() if current_mode is "move"
       highlight_current_soldier_fire_range() if current_mode is "fire"
+      highlight_current_soldier_sidearm_fire_range() if current_mode is "pistol"
     display_info()
     ui.display_decorations()
 
