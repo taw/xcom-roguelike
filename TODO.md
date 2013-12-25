@@ -3,6 +3,9 @@ Make these work:
 * heavy plasma weapons (sniper rifles, rifles, blaster launcher)
 * better armor types
 
+* try to disentangle spaghetti code a bit more
+* unit tests for cover mechanics (most will fail for now, obviously)
+
 * make fire trail for miss look like one
 * aliens should shoot most vulnerable soldier
 * inter-level summary screen
@@ -26,9 +29,7 @@ Make these work:
 * aliens should take 1 second or so per action (once movement trail are done)
 * aliens preference for cover and for staying close to each other
 
-* Alien class
-* MeleeAlien class
-* RangedAlien class
+* MeleeAlien, RangedAlien, FlyingAlien etc. classes ???
 * a few more alien types (floaters, heavy floaters) - for now possibly without any special stuff
 * berserkers
 * find_object to return actual object

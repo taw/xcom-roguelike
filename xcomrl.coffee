@@ -86,6 +86,55 @@ class Unit
   has_ability: (ability) ->
     ability in @abilities
 
+class Alien extends Unit
+
+class Sectoid extends Alien
+  constructor: (x,y) ->
+    super
+      x: x
+      y: y
+      style: "sectoid"
+      hpmax: 3
+      mobility: 5
+      aim: 65
+      gun_type: 'plasma_pistol'
+
+class ThinMan extends Alien
+  constructor: (x,y) ->
+    super
+      x: x
+      y: y
+      style: "thin_man"
+      hpmax: 3
+      mobility: 7
+      aim: 65
+      gun_type: 'light_plasma_rifle'
+
+class Muton extends Alien
+  constructor: (x,y) ->
+    super
+      x: x
+      y: y
+      style: "muton"
+      hpmax: 6
+      mobility: 5
+      aim: 70
+      gun_type: 'plasma_rifle'
+      abilities: ['alien_grenade']
+
+class MutonElite extends Alien
+  constructor: (x,y) ->
+    super
+      x: x
+      y: y
+      style: "muton_elite"
+      hpmax: 14
+      mobility: 5
+      aim: 80
+      defense: 20
+      gun_type: 'heavy_plasma'
+      abilities: ['alien_grenade']
+
 class Soldier extends Unit
   constructor: (attrs) ->
     super
@@ -132,6 +181,198 @@ class Soldier extends Unit
     if @xp >= @xp_for_next_promotion
       @setup_promotion()
 
+## Map
+class Map
+  constructor: ->
+    @level_number = 0
+    @soldiers     = []
+    @aliens       = []
+    @objects      = []
+  # populate 5x5 level
+  populate_level_fragment: (x0, y0) ->
+    x = x0 + random_int(4)
+    y = y0 + random_int(4)
+    switch random_int(20)
+      when 0, 1, 2, 3
+        if @level_number <= 2
+          @aliens.push new Sectoid(x, y)
+        else if @level_number <= 4
+          @aliens.push new ThinMan(x, y)
+        else if @level_number <= 6
+          @aliens.push new Muton(x, y)
+        else
+          @aliens.push new MutonElite(x, y)
+      when 4, 5
+        @objects.push x: x,    y: y,    style: "car", cover: 20
+        @objects.push x: x,    y: y+1,  style: "car", cover: 20
+      when 6, 7
+        @objects.push x: x,    y: y,    style: "car", cover: 20
+        @objects.push x: x+1,  y: y,    style: "car", cover: 20
+      when 8, 9, 10, 11
+        @objects.push x: x0,   y: y0,   style: "wall", cover: 40
+        @objects.push x: x0,   y: y0+1, style: "wall", cover: 40
+        @objects.push x: x0,   y: y0+2, style: "door", cover: 40
+        @objects.push x: x0,   y: y0+3, style: "wall", cover: 40
+        @objects.push x: x0,   y: y0+4, style: "wall", cover: 40
+        @objects.push x: x0+1, y: y0,   style: "wall", cover: 40
+        @objects.push x: x0+2, y: y0,   style: "door", cover: 40
+        @objects.push x: x0+3, y: y0,   style: "wall", cover: 40
+        @objects.push x: x0+4, y: y0,   style: "wall", cover: 40
+      when 12
+        @objects.push x: x,    y: y,    style: "abducted cow", cover: 40
+      when 13
+        @objects.push x: x,    y: y,    style: "abducted goat", cover: 20
+      when 14, 15
+        @objects.push x: x,    y: y,    style: "rock", cover: 40
+  generate_initial_squad: ->
+    @soldiers.push(
+      new Soldier
+        name: "Alice"
+        style: "soldier 1"
+        hpmax: 7
+        aim: 70
+        mobility: 5
+        gun_type: 'shotgun'
+        abilities: ['Run and gun']
+    )
+    @soldiers.push(
+      new Soldier
+        name: "Bob"
+        style: "soldier 2"
+        hpmax: 7
+        aim: 67
+        mobility: 5
+        gun_type: 'lmg'
+        abilities: ['Fire rocket']
+    )
+    @soldiers.push(
+      new Soldier
+        name: "Charlie"
+        style: "soldier 3"
+        hpmax: 6
+        aim: 75
+        mobility: 5
+        gun_type: 'sniper_rifle'
+    )
+    @soldiers.push(
+      new Soldier
+        name: "Diana"
+        style: "soldier 4"
+        hpmax: 7
+        aim: 70
+        mobility: 5
+        gun_type: 'rifle'
+    )
+  generate_level: ->
+    @level_number++
+    @objects = []
+    @aliens  = []
+    @soldiers[0].x = 1
+    @soldiers[0].y = 1
+    @soldiers[1].x = 3
+    @soldiers[1].y = 3
+    @soldiers[2].x = 1
+    @soldiers[2].y = 3
+    @soldiers[3].x = 3
+    @soldiers[3].y = 1
+    aliens = []
+    for i in [0..5]
+      for j in [0..5]
+        if i isnt 0 or j isnt 0
+          @populate_level_fragment i * 5, j * 5
+    for soldier in @soldiers
+      soldier.start_new_level()
+    for alien in @aliens
+      alien.start_new_level()
+  @property 'live_soldiers',
+    get: -> (soldier for soldier in @soldiers when soldier.hp > 0)
+  @property 'live_aliens',
+    get: -> (alien for alien in @aliens when alien.hp > 0)
+  @property 'all_soldiers_dead',
+    get: -> (true for soldier in @soldiers when soldier.hp > 0).length == 0
+  @property 'all_aliens_dead',
+    get: -> (true for alien in @aliens when alien.hp > 0).length == 0
+
+  find_object: (x, y) ->
+    for soldier in @soldiers
+      if soldier.x is x and soldier.y is y
+        return type: "soldier", object: soldier
+    for alien in @aliens
+      if alien.x is x and alien.y is y
+        return type: "alien", object: alien
+    for object in @objects
+      if object.x is x and object.y is y
+        return type: "object", object: object
+    return type: "empty"
+  is_object_present: (x, y) ->
+    @find_object(x, y).type != "empty"
+  cover_level: (x, y) ->
+    found = @find_object(x, y)
+    if found.type == 'object'
+      found.object.cover
+    else
+      0
+  cover_status: (shooter, target) ->
+    left    = @cover_level(target.x - 1, target.y)
+    right   = @cover_level(target.x + 1, target.y)
+    top     = @cover_level(target.x, target.y - 1)
+    bottom  = @cover_level(target.x, target.y + 1)
+    best_cover = _.max([left,right,top,bottom])
+    cover = _.max([
+      if shooter.x < target.x then left else 0,
+      if shooter.x > target.x then right else 0,
+      if shooter.y < target.y then top else 0,
+      if shooter.y > target.y then bottom else 0,
+    ])
+    cover = 40 if cover == 20 and target.has_ability('Low profile')
+    description = if best_cover == 0
+      "In the open"
+    else if cover == 0
+      "Flanked"
+    else if cover <= 20
+      "Low cover (#{cover})"
+    else
+      "High cover (#{cover})"
+    {
+      description: description
+      cover: cover
+    }
+  # TODO: Doing this function properly is actually fairly nontrivial, this is very dirty approximation
+  compute_range: (x0, y0, m) ->
+    range = []
+    for dy in [-m..m]
+      for dx in [-m..m]
+        continue if dx * dx + dy * dy > m * m
+        x = x0 + dx
+        y = y0 + dy
+        continue if x < 0 or y < 0 or x >= 30 or y >= 30
+        continue if @is_object_present(x, y)
+        range.push x: x, y: y
+    range
+  hit_chance: (shooter, target) ->
+    distance = dist2(shooter.x - target.x, shooter.y - target.y)
+    chance = shooter.aim - target.defense - shooter.aim_penalty_for_distance(distance) - @cover_status(shooter, target).cover + (shooter.gun.aimbonus || 0)
+    chance += 10 if shooter.has_ability('SCOPE')
+    chance += 10 if shooter.has_ability('Executioner') and target.hp*2 < target.hpmax
+    if chance > 100
+      100
+    else if chance < 0
+      0
+    else
+      chance
+  crit_chance: (shooter, target) ->
+    chance = shooter.gun.crit_chance
+    return 0 if shooter.has_ability('Resilience')
+    chance += 10 if shooter.has_ability('SCOPE')
+    chance += 50 if @cover_status(shooter, target).cover == 0
+    chance
+  in_move_range: (unit, x, y) ->
+    for cell in @compute_range(unit.x, unit.y, unit.mobility)
+      return true if cell.x is x and cell.y is y
+    false
+
+
+## Everything below is a very dirty mix of UI, logic, and other stuff
 $ ->
   ## Static global data
   styles =
@@ -158,9 +399,7 @@ $ ->
   ctx = canvas.getContext("2d")
   ctx.font = "18px Courier"
   ctx.lineCap = "round"
-  soldiers = []
-  aliens = []
-  objects = []
+  map = new Map()
   current_soldier_idx = null
   mouse_x = null
   mouse_y = null
@@ -168,148 +407,7 @@ $ ->
   level_number = 0
   decorations = []
 
-  ## Create aliens
-
-  create_sectoid = (x,y) ->
-    new Unit
-      x: x
-      y: y
-      style: "sectoid"
-      hpmax: 3
-      mobility: 5
-      aim: 65
-      gun_type: 'plasma_pistol'
-
-  create_thin_man = (x,y) ->
-    new Unit
-      x: x
-      y: y
-      style: "thin_man"
-      hpmax: 3
-      mobility: 7
-      aim: 65
-      gun_type: 'light_plasma_rifle'
-
-  create_muton = (x,y) ->
-    new Unit
-      x: x
-      y: y
-      style: "muton"
-      hpmax: 6
-      mobility: 5
-      aim: 70
-      gun_type: 'plasma_rifle'
-      abilities: ['alien_grenade']
-
-  create_muton_elite = (x,y) ->
-    new Unit
-      x: x
-      y: y
-      style: "muton_elite"
-      hpmax: 14
-      mobility: 5
-      aim: 80
-      defense: 20
-      gun_type: 'heavy_plasma'
-      abilities: ['alien_grenade']
-
   ## Everything else
-
-  # populate 5x5 level
-  populate_level_fragment = (x0, y0) ->
-    x = x0 + random_int(4)
-    y = y0 + random_int(4)
-    switch random_int(20)
-      when 0, 1, 2, 3
-        if level_number <= 2
-          aliens.push create_sectoid(x, y)
-        else if level_number <= 4
-          aliens.push create_thin_man(x, y)
-        else if level_number <= 6
-          aliens.push create_muton(x, y)
-        else
-          aliens.push create_muton_elite(x, y)
-      when 4, 5
-        objects.push x: x,    y: y,    style: "car", cover: 20
-        objects.push x: x,    y: y+1,  style: "car", cover: 20
-      when 6, 7
-        objects.push x: x,    y: y,    style: "car", cover: 20
-        objects.push x: x+1,  y: y,    style: "car", cover: 20
-      when 8, 9, 10, 11
-        objects.push x: x0,   y: y0,   style: "wall", cover: 40
-        objects.push x: x0,   y: y0+1, style: "wall", cover: 40
-        objects.push x: x0,   y: y0+2, style: "door", cover: 40
-        objects.push x: x0,   y: y0+3, style: "wall", cover: 40
-        objects.push x: x0,   y: y0+4, style: "wall", cover: 40
-        objects.push x: x0+1, y: y0,   style: "wall", cover: 40
-        objects.push x: x0+2, y: y0,   style: "door", cover: 40
-        objects.push x: x0+3, y: y0,   style: "wall", cover: 40
-        objects.push x: x0+4, y: y0,   style: "wall", cover: 40
-      when 12
-        objects.push x: x,    y: y,    style: "abducted cow", cover: 40
-      when 13
-        objects.push x: x,    y: y,    style: "abducted goat", cover: 20
-      when 14, 15
-        objects.push x: x,    y: y,    style: "rock", cover: 40
-
-  generate_initial_squad = ->
-    soldiers.push(
-      new Soldier
-        name: "Alice"
-        style: "soldier 1"
-        hpmax: 7
-        aim: 70
-        mobility: 5
-        gun_type: 'shotgun'
-        abilities: ['Run and gun']
-    )
-    soldiers.push(
-      new Soldier
-        name: "Bob"
-        style: "soldier 2"
-        hpmax: 7
-        aim: 67
-        mobility: 5
-        gun_type: 'lmg'
-        abilities: ['Fire rocket']
-    )
-    soldiers.push(
-      new Soldier
-        name: "Charlie"
-        style: "soldier 3"
-        hpmax: 6
-        aim: 75
-        mobility: 5
-        gun_type: 'sniper_rifle'
-    )
-    soldiers.push(
-      new Soldier
-        name: "Diana"
-        style: "soldier 4"
-        hpmax: 7
-        aim: 70
-        mobility: 5
-        gun_type: 'rifle'
-    )
-  generate_level = ->
-    level_number++
-    soldiers[0].x = 1
-    soldiers[0].y = 1
-    soldiers[1].x = 3
-    soldiers[1].y = 3
-    soldiers[2].x = 1
-    soldiers[2].y = 3
-    soldiers[3].x = 3
-    soldiers[3].y = 1
-    aliens = []
-    for i in [0..5]
-      for j in [0..5]
-        if i isnt 0 or j isnt 0
-          populate_level_fragment i * 5, j * 5
-    for soldier in soldiers
-      soldier.start_new_level()
-    for alien in aliens
-      alien.start_new_level()
 
   clear_canvas = ->
     ctx.clearRect 0, 0, canvas.width, canvas.height
@@ -347,15 +445,15 @@ $ ->
         draw_all_bounds i, j, "#ccc"
 
   draw_objects = ->
-    for soldier in soldiers
+    for soldier in map.soldiers
       draw_text_sprite soldier
-    for alien in aliens
+    for alien in map.aliens
       draw_text_sprite alien
-    for object in objects
+    for object in map.objects
       draw_text_sprite object
 
   current_soldier = ->
-    soldiers[current_soldier_idx]
+    map.soldiers[current_soldier_idx]
 
   replace_content_if_differs = (target, fn) ->
     source = $("<div></div>")
@@ -389,20 +487,14 @@ $ ->
     draw_all_bounds x, y, "#f00"
 
   random_move = (alien) ->
-    range = compute_range(alien.x, alien.y, alien.mobility)
+    range = map.compute_range(alien.x, alien.y, alien.mobility)
     move = range[random_int(range.length)]
     alien.x = move.x
     alien.y = move.y
     alien.actions -= 1
 
-  live_soldiers = ->
-    (soldier for soldier in soldiers when soldier.hp > 0)
-
-  live_aliens = ->
-    (alien for alien in aliens when alien.hp > 0)
-
   any_alien_in_range = ->
-    for alien in live_aliens()
+    for alien in map.live_aliens
       return true if current_soldier().in_fire_range(alien)
     false
 
@@ -412,33 +504,33 @@ $ ->
     if alien.ammo == 0
       alien.action_reload()
     else
-      soldiers_in_range = (soldier for soldier in live_soldiers() when alien.in_fire_range(soldier))
+      soldiers_in_range = (soldier for soldier in map.live_soldiers when alien.in_fire_range(soldier))
       if soldiers_in_range.length
         fire_action alien, soldier
       else
         random_move alien
 
   aliens_turn = ->
-    for alien in aliens
+    for alien in map.aliens
       alien.start_new_turn()
-    for alien in live_aliens()
+    for alien in map.aliens
       process_alien_actions alien
 
   start_new_turn = ->
-    for soldier in soldiers
+    for soldier in map.soldiers
       soldier.start_new_turn()
     current_mode = "move"
     current_soldier_idx = 0
-    unless all_soldiers_dead()
+    unless map.all_soldiers_dead
       while current_soldier().hp == 0
         current_soldier_idx++
 
   find_next_soldier_idx = ->
-    for i in [(current_soldier_idx+1)...soldiers.length]
-      return i if soldiers[i].actions > 0
+    for i in [(current_soldier_idx+1)...map.soldiers.length]
+      return i if map.soldiers[i].actions > 0
     if current_soldier_idx != 0
       for i in [0..(current_soldier_idx-1)]
-        return i if soldiers[i].actions > 0
+        return i if map.soldiers[i].actions > 0
     null
 
   ## Actions
@@ -494,29 +586,16 @@ $ ->
     ctx.lineWidth = 2
     draw_all_bounds mouse_x, mouse_y, "#00f"
 
-  # TODO: Doing this function properly is actually fairly nontrivial, this is very dirty approximation
-  compute_range = (x0, y0, m) ->
-    range = []
-    for dy in [-m..m]
-      for dx in [-m..m]
-        continue if dx * dx + dy * dy > m * m
-        x = x0 + dx
-        y = y0 + dy
-        continue if x < 0 or y < 0 or x >= 30 or y >= 30
-        continue if is_object_present(x, y)
-        range.push x: x, y: y
-    range
-
   highlight_current_soldier_move_range = ->
     soldier = current_soldier()
     if soldier.actions == 2
-      for cell in compute_range(soldier.x, soldier.y, 2*soldier.mobility)
+      for cell in map.compute_range(soldier.x, soldier.y, 2*soldier.mobility)
         draw_text_sprite x: cell.x, y: cell.y, style: "dash_movement_highlight"
-    for cell in compute_range(soldier.x, soldier.y, soldier.mobility)
+    for cell in map.compute_range(soldier.x, soldier.y, soldier.mobility)
       draw_text_sprite x: cell.x, y: cell.y, style: "movement_highlight"
 
   highlight_current_soldier_fire_range = ->
-    for alien in live_aliens()
+    for alien in map.live_aliens
       if current_soldier().in_fire_range(alien)
         ctx.lineWidth = 2
         draw_all_bounds alien.x, alien.y, "#00a"
@@ -531,21 +610,22 @@ $ ->
       if soldier.promotion_options.length
         for ability, i in soldier.promotion_options
           actions.push key: "#{i+1}", label: "Promotion - #{ability}"
-      if soldier.ammo < gun.ammomax
-        actions.push key: 'r', label: 'Reload'
-      if current_mode == 'fire'
-        actions.push key: 'm', label: 'Move'
-      if soldier.ammo > 0
-        if !gun.two_actions or soldier.actions == 2
-          actions.push key: 'o', label: 'Overwatch'
-          if current_mode == 'move'
-            if any_alien_in_range()
-              actions.push key: 'f', label: 'Fire'
-            else
-              actions.push key: 'f', label: 'Fire', inactive: 'no targets in range'
-      else
-        actions.push key: 'o', label: 'Overwatch', inactive: 'no ammo'
-        actions.push key: 'f', label: 'Fire', inactive: 'no ammo'
+      if soldier.actions > 0
+        if soldier.ammo < gun.ammomax
+          actions.push key: 'r', label: 'Reload'
+        if current_mode == 'fire'
+          actions.push key: 'm', label: 'Move'
+        if soldier.ammo > 0
+          if !gun.two_actions or soldier.actions == 2
+            actions.push key: 'o', label: 'Overwatch'
+            if current_mode == 'move'
+              if any_alien_in_range()
+                actions.push key: 'f', label: 'Fire'
+              else
+                actions.push key: 'f', label: 'Fire', inactive: 'no targets in range'
+        else
+          actions.push key: 'o', label: 'Overwatch', inactive: 'no ammo'
+          actions.push key: 'f', label: 'Fire', inactive: 'no ammo'
     if find_next_soldier_idx() isnt null
       actions.push key: 'n', label: 'Next soldier'
     _.sortBy actions, (action) ->
@@ -578,26 +658,11 @@ $ ->
         else
           updated.append("<div class='action' data-key='#{action.key}'>#{action.key} #{action.label}</div>")
 
-  find_object = (x, y) ->
-    for soldier in soldiers
-      if soldier.x is x and soldier.y is y
-        return type: "soldier", object: soldier
-    for alien in aliens
-      if alien.x is x and alien.y is y
-        return type: "alien", object: alien
-    for object in objects
-      if object.x is x and object.y is y
-        return type: "object", object: object
-    return type: "empty"
-
-  is_object_present = (x, y) ->
-    find_object(x, y).type isnt "empty"
-
   display_mouseover_object = ->
     replace_content_if_differs $("#mouseover_object"), (updated) ->
       return if mouse_x is null or mouse_y is null
       updated.append "<div class='coordinates'>x=" + mouse_x + " y=" + mouse_y + "</div>"
-      found = find_object(mouse_x, mouse_y)
+      found = map.find_object(mouse_x, mouse_y)
       object = found.object
       switch found.type
         when "soldier"
@@ -605,73 +670,15 @@ $ ->
         when "alien"
           updated.append "<div>Alien #{object.style} (#{object.hp}/#{object.hpmax})</div>"
           if current_soldier().in_fire_range(object)
-            updated.append "<div>In range (hit #{hit_chance(current_soldier(), object)}%, crit #{crit_chance(current_soldier(), object)}%)</div>"
+            updated.append "<div>In range (hit #{map.hit_chance(current_soldier(), object)}%, crit #{map.crit_chance(current_soldier(), object)}%)</div>"
           else
             updated.append "<div>Out of range</div>"
-          updated.append "<div>#{cover_status(current_soldier(), object).description}</div>"
+          updated.append "<div>#{map.cover_status(current_soldier(), object).description}</div>"
         when "object"
           updated.append "<div>#{object.style}</div>"
           updated.append "<div>Cover level #{object.cover}</div>"
         when "empty"
           updated.append "<div>Empty</div>"
-
-  in_move_range = (soldier, x, y) ->
-    range = compute_range(soldier.x, soldier.y, soldier.mobility)
-    for cell in range
-      return true if cell.x is x and cell.y is y
-    false
-
-  cover_level = (x, y) ->
-    found = find_object(x, y)
-    if found.type == 'object'
-      found.object.cover
-    else
-      0
-
-  cover_status = (shooter, target) ->
-    left    = cover_level(target.x - 1, target.y)
-    right   = cover_level(target.x + 1, target.y)
-    top     = cover_level(target.x, target.y - 1)
-    bottom  = cover_level(target.x, target.y + 1)
-    best_cover = _.max([left,right,top,bottom])
-    cover = _.max([
-      if shooter.x < target.x then left else 0,
-      if shooter.x > target.x then right else 0,
-      if shooter.y < target.y then top else 0,
-      if shooter.y > target.y then bottom else 0,
-    ])
-    cover = 40 if cover == 20 and target.has_ability('Low profile')
-    description = if best_cover == 0
-      "In the open"
-    else if cover == 0
-      "Flanked"
-    else if cover <= 20
-      "Low cover (#{cover})"
-    else
-      "High cover (#{cover})"
-    {
-      description: description
-      cover: cover
-    }
-
-  hit_chance = (shooter, target) ->
-    distance = dist2(shooter.x - target.x, shooter.y - target.y)
-    chance = shooter.aim - target.defense - shooter.aim_penalty_for_distance(distance) - cover_status(shooter, target).cover + (shooter.gun.aimbonus || 0)
-    chance += 10 if shooter.has_ability('SCOPE')
-    chance += 10 if shooter.has_ability('Executioner') and target.hp*2 < target.hpmax
-    if chance > 100
-      100
-    else if chance < 0
-      0
-    else
-      chance
-
-  crit_chance = (shooter, target) ->
-    chance = shooter.gun.crit_chance
-    return 0 if shooter.has_ability('Resilience')
-    chance += 10 if shooter.has_ability('SCOPE')
-    chance += 50 if cover_status(shooter, target).cover == 0
-    chance
 
   fire_trail = (shooter, target, msg) ->
     decorations.push
@@ -692,8 +699,8 @@ $ ->
     gun = shooter.gun
     shooter.actions = 0
     shooter.ammo -= 1
-    if Math.random() * 100 < hit_chance(shooter, target)
-      if Math.random() * 100 < crit_chance(shooter, target)
+    if Math.random() * 100 < map.hit_chance(shooter, target)
+      if Math.random() * 100 < map.crit_chance(shooter, target)
         target.take_damage gun.damage
         fire_trail shooter, target, "#{gun.damage}"
       else
@@ -706,40 +713,35 @@ $ ->
 
   clicked_on = (x, y) ->
     soldier = current_soldier()
-    object_clicked = find_object(x, y)
+    object_clicked = map.find_object(x, y)
 
     if object_clicked.type == "soldier"
-      current_soldier_idx = soldiers.indexOf(object_clicked.object)
-
+      current_soldier_idx = map.soldiers.indexOf(object_clicked.object)
+      return
     if current_mode is "move" and soldier.actions > 0
-      if in_move_range(soldier, x, y)
+      if map.in_move_range(soldier, x, y)
         soldier.x = x
         soldier.y = y
         soldier.actions -= 1
-    if current_mode is "fire"
+    if current_mode is "fire" and soldier.actions > 0
       return unless soldier.in_fire_range(x: x, y: y)
-      object_clicked = find_object(x, y)
+      object_clicked = map.find_object(x, y)
       return if object_clicked.type != "alien"
       fire_action soldier, object_clicked.object
-    next_soldier()  if soldier.actions is 0
-
-  all_soldiers_dead = ->
-    (true for soldier in soldiers when soldier.hp > 0).length == 0
-
-  all_aliens_dead = ->
-    (true for alien in aliens when alien.hp > 0).length == 0
+    next_soldier() if soldier.actions is 0
 
   display_info = ->
     replace_content_if_differs $("#map_info"), (updated) ->
-      updated.append("Level #{level_number}")
+      updated.append("Level #{map.level_number}")
     display_soldier_info current_soldier()
     display_mouseover_object()
     display_available_actions()
     replace_content_if_differs $("#game_status"), (updated) ->
-      if all_soldiers_dead()
+      if map.all_soldiers_dead
         updated.append("You lost!")
-      else if all_aliens_dead()
-        generate_level()
+      else if map.all_aliens_dead
+        map.generate_level()
+        start_new_turn()
 
   display_decorations = ->
     time = current_time()
@@ -776,7 +778,7 @@ $ ->
     null
 
   $(canvas).bind "click", (event) ->
-    return if all_soldiers_dead()
+    return if map.all_soldiers_dead
     rect = canvas.getBoundingClientRect()
     x = Math.floor((event.clientX - rect.left) / 24)
     y = Math.floor((event.clientY - rect.top) / 24)
@@ -789,7 +791,7 @@ $ ->
     null
 
   $(document).bind "keypress", (event) ->
-    return if all_soldiers_dead()
+    return if map.all_soldiers_dead
     perform_action String.fromCharCode(event.which).toLowerCase()
     null
 
@@ -801,8 +803,8 @@ $ ->
     draw_map()
     null
 
-  generate_initial_squad()
-  generate_level()
+  map.generate_initial_squad()
+  map.generate_level()
   start_new_turn()
   # TODO: window.requestAnimationFrame(main_loop); ???
   setInterval main_loop, 1000.0 / 60.0
