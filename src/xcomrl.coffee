@@ -40,7 +40,7 @@ $ ->
 
   any_alien_in_range = ->
     for alien in map.live_aliens
-      return true if current_soldier().in_fire_range(alien)
+      return true if map.can_shoot_at(current_soldier(), alien)
     false
 
   # TODO: this should go within Alien
@@ -50,7 +50,7 @@ $ ->
     if alien.must_reload
       alien.action_reload()
     else
-      soldiers_in_range = (soldier for soldier in map.live_soldiers when alien.in_fire_range(soldier))
+      soldiers_in_range = (soldier for soldier in map.live_soldiers when map.can_shoot_at(alien, soldier))
       if soldiers_in_range.length
         fire_action alien, soldier
       else
@@ -119,7 +119,7 @@ $ ->
 
   highlight_current_soldier_fire_range = ->
     for alien in map.live_aliens
-      if current_soldier().in_fire_range(alien)
+      if map.can_shoot_at(current_soldier(), alien)
         ui.highlight_target_in_fire_range(alien.x, alien.y)
 
   # TODO: maybe some of this should go within Soldier or Map ???
@@ -190,7 +190,7 @@ $ ->
           updated.append "<div>#{object.rank} #{object.name} (#{object.hp}/#{object.hpmax})</div>"
         when "alien"
           updated.append "<div>Alien #{object.style} (#{object.hp}/#{object.hpmax})</div>"
-          if current_soldier().in_fire_range(object)
+          if map.can_shoot_at(current_soldier(), object)
             updated.append "<div>In range (hit #{map.hit_chance(current_soldier(), object)}%, crit #{map.crit_chance(current_soldier(), object)}%)</div>"
           else
             updated.append "<div>Out of range</div>"
@@ -227,9 +227,9 @@ $ ->
       if map.in_move_range(soldier, x, y)
         soldier.action_move x, y
     if current_mode is "fire" and soldier.actions > 0
-      return unless soldier.in_fire_range(x: x, y: y)
       object_clicked = map.find_object(x, y)
-      return if object_clicked.type != "alien"
+      return unless object_clicked.type == "alien"
+      return unless map.can_shoot_at(soldier, object_clicked.object)
       fire_action soldier, object_clicked.object
     next_soldier() if soldier.actions is 0
 

@@ -56,7 +56,7 @@ class Unit
   @property 'must_reload',
     get: -> @ammo == 0
   @property 'can_reload',
-    get: -> @ammo == @ammomax
+    get: -> @ammo < @ammomax
   action_move: (x,y) ->
     @x = x
     @y = y

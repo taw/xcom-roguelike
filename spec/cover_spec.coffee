@@ -13,7 +13,7 @@ setup_map = (lines) ->
         when '.'
           map.objects.push x: x, y: y, style: "abducted goat", cover: 20
         when 'x'
-          map.objects.push x: x, y: y, style: "abducted cow", cover: 20
+          map.objects.push x: x, y: y, style: "abducted cow", cover: 40
         when ' '
           null
   map
@@ -21,6 +21,7 @@ setup_map = (lines) ->
 test_covers = (name, attrs) ->
   test name, ->
     translation =
+      'Invisible': 'invisible'
       'In the open': 'in_the_open'
       'Flanked': 'flanked'
       'Low cover (20)': 'half_cover'
@@ -32,7 +33,10 @@ test_covers = (name, attrs) ->
       for shooter_idx, expected of val
         shooter = map.unit_index[shooter_idx]
         actual = translation[map.cover_status(shooter, target).description]
-        ok(actual==expected, "Expected #{target_idx} to be #{expected} by #{shooter_idx}, was #{actual}")
+        if actual==expected
+          ok(true, "#{target_idx} is #{expected} by #{shooter_idx} as expected")
+        else
+          ok(false, "Expected #{target_idx} to be #{expected} by #{shooter_idx}, was #{actual}")
 
 test_covers 'Basic cover situation 1',
   map: [
@@ -119,7 +123,6 @@ test_covers 'Side stepping',
   4:
     1: 'half_cover'
 
-# FIXME: not implemented yet
 test_covers 'Line of sight',
   map: [
     "          x "
@@ -211,6 +214,7 @@ test_covers 'Miscellaneous scenarios 4',
     2: 'flanked'
   2:
     1: 'flanked'
+
 test_covers 'Miscellaneous scenarios 5',
   map: [
     ".      ."

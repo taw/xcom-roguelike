@@ -129,11 +129,42 @@ class Map
       found.object.cover
     else
       0
+  # FIXME: This algorithm does circle, not axis-aligned box, for simplicity
+  object_blocks_line_of_sight: (shooter, target, object) ->
+    {x:x0, y:y0} = shooter
+    {x:x1, y:y1} = target
+    {x:xo, y:yo} = object
+    dx1 = x1 - x0
+    dy1 = y1 - y0
+    dxo = xo - x0
+    dyo = yo - y0
+    ld1 = dist2(dx1, dy1)
+    ldo = dist2(dxo, dyo)
+    # This formula is correct
+    proj_v = (dxo*dx1 + dyo*dy1) / ld1 / ld1
+    # Point on the segment closest to the circle of radius (halfway between 0.5 or 0.7)
+    if proj_v <= 0
+      xc = x0
+      yc = y0
+    else if proj_v >= 1.0
+      xc = x1
+      yc = y1
+    else
+      xc = x0 + proj_v * dx1
+      yc = y0 + proj_v * dy1
+    dist2(xc-xo, yc-yo) <= 0.6
+  is_visible: (shooter, target) ->
+    return true if shooter.x == target.x and shooter.y == target.y
+    for object in @objects
+      continue unless object.cover == 40
+      return false if @object_blocks_line_of_sight(shooter, target, object)
+    true
   cover_status: (shooter, target) ->
     left    = @cover_level(target.x - 1, target.y)
     right   = @cover_level(target.x + 1, target.y)
     top     = @cover_level(target.x, target.y - 1)
     bottom  = @cover_level(target.x, target.y + 1)
+    visible = @is_visible(shooter, target)
     best_cover = _.max([left,right,top,bottom])
     cover = _.max([
       if shooter.x < target.x then left else 0,
@@ -141,8 +172,11 @@ class Map
       if shooter.y < target.y then top else 0,
       if shooter.y > target.y then bottom else 0,
     ])
+    cover = 1000 unless visible # FIXME: This makes no sense except as a stupid hack, they're just not visible
     cover = 40 if cover == 20 and target.has_ability('Low profile')
-    description = if best_cover == 0
+    description = if !visible
+      "Invisible"
+    else if best_cover == 0
       "In the open"
     else if cover == 0
       "Flanked"
@@ -154,6 +188,10 @@ class Map
       description: description
       cover: cover
     }
+  can_shoot_at: (shooter, target) ->
+    return false unless shooter.in_fire_range(target)
+    return false unless @is_visible(shooter, target)
+    true
   # TODO: Doing this function properly is actually fairly nontrivial, this is very dirty approximation
   compute_range: (x0, y0, m) ->
     range = []
