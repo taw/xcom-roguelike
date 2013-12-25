@@ -142,7 +142,7 @@ class Map
     ldo = dist2(dxo, dyo)
     # This formula is correct
     proj_v = (dxo*dx1 + dyo*dy1) / ld1 / ld1
-    # Point on the segment closest to the circle of radius (halfway between 0.5 or 0.7)
+    # Point on the segment closest to the circle of radius 0.6 (halfway between 0.5 or 0.7)
     if proj_v <= 0
       xc = x0
       yc = y0
@@ -159,22 +159,52 @@ class Map
       continue unless object.cover == 40
       return false if @object_blocks_line_of_sight(shooter, target, object)
     true
-  cover_status: (shooter, target) ->
+  sidestep_spots: (unit) ->
+    spots = []
+    x = unit.x
+    y = unit.y
+    left    = @find_object(x-1, y)
+    right   = @find_object(x+1, y)
+    top     = @find_object(x,   y-1)
+    bottom  = @find_object(x,   y+1)
+    # left_high_cover   = true # (left.type   == 'object' and left.object.cover   == 40)
+    # right_high_cover  = true # (right.type  == 'object' and right.object.cover  == 40)
+    # top_high_cover    = true # (top.type    == 'object' and top.object.cover    == 40)
+    # bottom_high_cover = true # (bottom.type == 'object' and bottom.object.cover == 40)
+    spots.push(x: x, y: y)
+    spots.push(x: x-1, y: y) if left.type   == 'empty' # and (top_high_cover or bottom_high_cover)
+    spots.push(x: x+1, y: y) if right.type  == 'empty' # and (top_high_cover or bottom_high_cover)
+    spots.push(x: x, y: y-1) if top.type    == 'empty' # and (left_high_cover or right_high_cover)
+    spots.push(x: x, y: y+1) if bottom.type == 'empty' # and (left_high_cover or right_high_cover)
+    spots
+  best_cover: (unit) ->
+    _.max([
+      @cover_level(unit.x - 1, unit.y)
+      @cover_level(unit.x + 1, unit.y)
+      @cover_level(unit.x, unit.y - 1)
+      @cover_level(unit.x, unit.y + 1)
+    ])
+  static_cover_level: (shooter, target) ->
     left    = @cover_level(target.x - 1, target.y)
     right   = @cover_level(target.x + 1, target.y)
     top     = @cover_level(target.x, target.y - 1)
     bottom  = @cover_level(target.x, target.y + 1)
-    visible = @is_visible(shooter, target)
-    best_cover = _.max([left,right,top,bottom])
-    cover = _.max([
+    _.max([
       if shooter.x < target.x then left else 0,
       if shooter.x > target.x then right else 0,
       if shooter.y < target.y then top else 0,
       if shooter.y > target.y then bottom else 0,
     ])
-    cover = 1000 unless visible # FIXME: This makes no sense except as a stupid hack, they're just not visible
+  cover_status: (shooter, target) ->
+    possible_shots = [1000] # FIXME: This makes no sense except as a stupid hack, they're just not visible
+    for spot1 in @sidestep_spots(shooter)
+      for spot2 in @sidestep_spots(target)
+        if @is_visible(spot1, spot2)
+          possible_shots.push @static_cover_level(spot1, target)
+    best_cover = @best_cover(target)
+    cover = _.min(possible_shots)
     cover = 40 if cover == 20 and target.has_ability('Low profile')
-    description = if !visible
+    description = if cover == 1000
       "Invisible"
     else if best_cover == 0
       "In the open"

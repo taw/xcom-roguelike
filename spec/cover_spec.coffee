@@ -113,11 +113,11 @@ test_covers 'Side stepping',
     "     x      "
   ]
   1:
-    2: 'full_cover'   # FIXME: WTF ???? Bug that makes no sense
+    2: 'full_cover'
     3: 'half_cover'
     4: 'half_cover'
   2:
-    1: 'flanked'      # FIXME: Will have bug when visibility system is implemented
+    1: 'flanked'
   3:
     1: 'flanked'      # FIXME: Known bug due to lack of sidestepping implementation
   4:
@@ -130,6 +130,7 @@ test_covers 'Line of sight',
     " .        x "
     "1.    x    4"
     " .    x  3  "
+    "      x     "
   ]
   2:
     1: 'invisible'
@@ -186,24 +187,23 @@ test_covers 'Miscellaneous scenarios 2',
   4:
     2: 'flanked'
 
-# TODO: make sure to double-measure this one
+# This depends on shapeof the box (0.6 radius circle currently a lot)
 test_covers 'Miscellaneous scenarios 3',
   map: [
-    "          "
-    "123  xxx4"
-    "....   x "
+    "....      "
+    "123   xxx4"
+    "....    x "
   ]
   1:
-    4: 'flanked'
+    4: 'half_cover'
   2:
-    4: 'flanked'
+    4: 'half_cover'
   3:
     4: 'invisible'
   4:
     1: 'full_cover'
     2: 'full_cover'
-    3: 'invisible' # invisibility must be mutual, you can only sidestep full cover
-
+    3: 'invisible' # invisibility must be mutual
 
 test_covers 'Miscellaneous scenarios 4',
   map: [
@@ -240,13 +240,13 @@ test_covers 'Miscellaneous scenarios 6 (cannot sidestep into other units or half
     4: 'half_cover'
   2:
     1: 'half_cover'
-    3: 'full_cover'
+    3: 'invisible'
   3:
     2: 'invisible'
-    4: 'full_cover'
+    4: 'half_cover'
   4:
     1: 'half_cover'
-    3: 'flankeh'
+    3: 'flanked'
 
 # In-game scenario
 test_covers 'Miscellaneous scenarios 7',

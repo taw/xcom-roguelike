@@ -1,5 +1,3 @@
-* Make cover system work - currently 40 assertions of 63 passed, 23 failed.
-
 * soldier perks test suite
 * try to disentangle spaghetti code a bit more
 
@@ -21,7 +19,6 @@ Make these work:
 * grenades
 * make rocket work
 
-* cover side-stepping (http://i.imgur.com/eqnBg.gif) - unit test these cases
 * no-cover aliens (floaters / heavy floaters) - they supposedly can't side-step cover
 
 * stat upgrades should be class-specific
