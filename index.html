@@ -1,63 +1,67 @@
+<!DOCTYPE html>
 <html>
-<head>
-  <title>XCOM: Roguelike</title>
-  <script type="text/javascript" src="jquery-1.10.2.js"></script>
-  <script type="text/javascript" src="jquery.hotkeys.js"></script>
-  <script type="text/javascript" src="underscore.js"></script>
-  <script type="text/javascript" src="xcomrl.js"></script>
-  <style type="text/css">
-    #infobox {
-      width: 200px;
-    }
-    #map_info {
-      margin-bottom: 1em;
-    }
-    #soldier_info {
-      margin-bottom: 1em;
-    }
-    #mouseover_object {
-      margin-bottom: 1em;
-    }
-    #game_status {
-      margin-top: 1em;
-      font-weight: bold;
-      font-size: 200%;
-    }
-    .inactive_action {
-      color: gray;
-    }
-    .action {
-      cursor: pointer;
-      color: blue;
-    }
-    .action:hover {
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
-  <h1>XCOM: Roguelike</h1>
-  <table>
-    <tr>
-      <td>
-        <canvas id="main_canvas" width="720" height="720"
-        style="border:1px solid #000000;">
-        </canvas>
-      </td>
-      <td>
-        <div id='infobox'>
-          <b>Map:</b>
-          <div id='map_info'></div>
-          <b>Selected soldier:</b>
-          <div id='soldier_info'></div>
-          <b>Mouseover object:</b>
-          <div id='mouseover_object'></div>
-          <b>Actions:</b>
-          <div id='actions'></div>
-          <div id='game_status'></div>
-        </div>
-      </td>
-    </tr>
-  </table>
-</body>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>XCOM: Roguelike</title>
+    <link rel="stylesheet" href="">
+    <script type="text/javascript" src="jquery-1.10.2.js"></script>
+    <script type="text/javascript" src="jquery.hotkeys.js"></script>
+    <script type="text/javascript" src="underscore.js"></script>
+    <script type="text/javascript" src="xcomrl.js"></script>
+    <style type="text/css">
+      #infobox {
+        width: 200px;
+      }
+      #map_info {
+        margin-bottom: 1em;
+      }
+      #soldier_info {
+        margin-bottom: 1em;
+      }
+      #mouseover_object {
+        margin-bottom: 1em;
+      }
+      #game_status {
+        margin-top: 1em;
+        font-weight: bold;
+        font-size: 200%;
+      }
+      .inactive_action {
+        color: gray;
+      }
+      .action {
+        cursor: pointer;
+        color: blue;
+      }
+      .action:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>XCOM: Roguelike</h1>
+    <table>
+      <tr>
+        <td>
+          <canvas id="main_canvas" width="720" height="720"
+          style="border:1px solid #000000;">
+          </canvas>
+        </td>
+        <td>
+          <div id='infobox'>
+            <b>Map:</b>
+            <div id='map_info'></div>
+            <b>Selected soldier:</b>
+            <div id='soldier_info'></div>
+            <b>Mouseover object:</b>
+            <div id='mouseover_object'></div>
+            <b>Actions:</b>
+            <div id='actions'></div>
+            <div id='game_status'></div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </body>
 </html>

@@ -1,3 +1,4 @@
+* replace underscore.js with underscore.coffee
 * split code into multiple files
 * try to disentangle spaghetti code a bit more
 
