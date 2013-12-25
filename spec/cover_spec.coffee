@@ -150,3 +150,113 @@ test_covers 'Line of sight sidestepping',
     1: 'invisible'
   4:
     1: 'flanked'
+
+test_covers 'Miscellaneous scenarios 1',
+  map: [
+    " 1   "
+    " ...2"
+    "3... "
+    "   4 "
+  ]
+  1:
+    3: 'half_cover'
+  2:
+    1: 'half_cover'
+  3:
+    1: 'flanked'
+    2: 'half_cover'
+    4: 'half_cover'
+  4:
+    3: 'flanked'
+
+test_covers 'Miscellaneous scenarios 2',
+  map: [
+    "   1 "
+    " xxx "
+    "2xxx3"
+    "   4 "
+  ]
+  1:
+    2: 'invisible'
+  3:
+    2: 'full_cover'
+  4:
+    2: 'flanked'
+
+# TODO: make sure to double-measure this one
+test_covers 'Miscellaneous scenarios 3',
+  map: [
+    "          "
+    "123  xxx4"
+    "....   x "
+  ]
+  1:
+    4: 'flanked'
+  2:
+    4: 'flanked'
+  3:
+    4: 'invisible'
+  4:
+    1: 'full_cover'
+    2: 'full_cover'
+    3: 'invisible' # invisibility must be mutual, you can only sidestep full cover
+
+
+test_covers 'Miscellaneous scenarios 4',
+  map: [
+    "......"
+    " 1  2 "
+  ]
+  1:
+    2: 'flanked'
+  2:
+    1: 'flanked'
+test_covers 'Miscellaneous scenarios 5',
+  map: [
+    ".      ."
+    "1 .2x  3"
+    ".      ."
+  ]
+  1:
+    2: 'flanked'
+  2:
+    1: 'half_cover'
+    3: 'full_cover'
+  3:
+    2: 'half_cover'
+
+test_covers 'Miscellaneous scenarios 6 (cannot sidestep into other units or half-cover)',
+  map: [
+    ".  .   ."
+    "1 .2x  3"
+    ". .4   ."
+  ]
+  1:
+    2: 'flanked'
+    4: 'half_cover'
+  2:
+    1: 'half_cover'
+    3: 'full_cover'
+  3:
+    2: 'invisible'
+    4: 'full_cover'
+  4:
+    1: 'half_cover'
+    3: 'flankeh'
+
+# In-game scenario
+test_covers 'Miscellaneous scenarios 7',
+  map: [
+    "    xxxxx  "
+    "  xxx 1.x  "
+    "        x  "
+    "        xxx"
+    "    2.  3  "
+  ]
+  1:
+    2: 'flanked'
+    3: 'half_cover'
+  2:
+    1: 'half_cover'
+  3:
+    1: 'full_cover'

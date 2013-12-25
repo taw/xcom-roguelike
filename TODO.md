@@ -1,4 +1,5 @@
-* full cover system test suite
+* Make cover system work - currently 40 assertions of 63 passed, 23 failed.
+
 * soldier perks test suite
 * try to disentangle spaghetti code a bit more
 
