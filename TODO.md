@@ -1,3 +1,5 @@
+* full line of sight test for shooting (maybe ignoring covers)
+
 * make run&gun work
 * grenades
 * make rockets work
@@ -29,7 +31,6 @@
 * soldiers and aliens in one structure
 * movement trails
 * movement by 1.0 / 1.4, not full Euclidean distance (if it works)
-* full line of sight test for shooting (maybe ignoring covers)
 * dashing
 * class ability for snipers
 * maybe free aim (once there are destructible covers)
@@ -39,6 +40,7 @@
 * perk tree ideas from http://www.nexusmods.com/xcom/mods/88/ ?
 * Overwatch system will be a big upgrade much later
 * Some not completely stupid level generation as well
+* http://www.reddit.com/r/Xcom/comments/1utih9/can_someone_fix_this_ufopaedia_entry/
 
 Ability tree idea - training roulette pool:
 * disabling shot
