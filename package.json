@@ -1,0 +1,10 @@
+{
+  "name": "xcom-roguelike",
+  "description": "XCOM: Roguelike",
+  "author": "Tomasz Wegrzanowski <Tomasz.Wegrzanowski@gmail.com>",
+  "version": "0.0.0",
+  "repository": {"type": "git", "url": "git@github.com:taw/xcom-roguelike.git"},
+  "devDependencies": {
+    "coffee":  ">=1.0.0"
+  }
+}
