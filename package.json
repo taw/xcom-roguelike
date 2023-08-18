@@ -8,5 +8,9 @@
     "coffee-script":  ">=1.12.2",
     "qunitjs": ">=2.1.1",
     "node-qunit-phantomjs": ">=1.5.0"
+  },
+  "scripts": {
+    "build": "coffee -j xcomrl.js -c src/{core_ext,unit,map,ui,xcomrl}.coffee && coffee -j xcomrl_test.js -c src/{core_ext,unit,map}.coffee spec/*.coffee",
+    "test": "node-qunit-phantomjs spec.html"
   }
 }
